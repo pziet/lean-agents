@@ -7,30 +7,23 @@
   - Verify that Lean can compile your initial theorem structure.
 
 - [ ] **Implement Agent Harness**  
-  - Build the `main_coordinator.py` or equivalent entry point.
-  - Create a `base_agent.py` class and specialized agent classes (`specialized_agent.py`, `llm_agent.py`, etc.).
-  - Define and document the agent–Lean interface.
-
-- [ ] **Establish Coordination Mechanism**  
-  - Implement a shared folder (`proven/`) or event bus to broadcast new proofs.
-  - Ensure agents can detect and utilize newly proven lemmas.
-
-- [ ] **Add Logging & Evaluation**  
+  - Build the out the files in `agent_harness/`
   - Create a logging system to record agent decisions, proof attempts, and successes.
-  - Design a simple evaluation script to measure proof times, success rates, and duplication.
+  - Ensure agents run in parallel, and that they can see the full context of attempted proofs and accepted proofs!
 
-- [ ] **Optional: LLM Integration**  
-  - Plug in an LLM agent that uses prompt engineering to propose Lean tactics or proof steps.
-  - Create a prompt template structure for consistent and reproducible results.
+- [ ] **Run multiple experiments**
+  - Different proofs, agent set ups etc
+  - Visualize the results for demo
 
-- [ ] **Testing & QA**  
-  - Write unit tests for agent logic, Lean interface, and event bus.
-  - Perform end-to-end tests to ensure the system can prove basic theorems collaboratively.
-
-- [ ] **Containerization (Optional)**  
+- [ ] **Containerization**  
   - Add a Dockerfile or docker-compose setup to run multiple agents in separate containers.
   - Document how to deploy or scale the system.
 
+- [ ] **Testing & QA**  (?)
+  - Write unit tests for agent logic, Lean interface, and event bus.
+  - Perform end-to-end tests to ensure the system can prove basic theorems collaboratively.
+
+ROUGH BELOW
 ---
 
 ## Project Overview
