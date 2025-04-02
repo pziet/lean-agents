@@ -1,0 +1,45 @@
+{
+  "theorem_file": "path/to/theorems.lean",
+  "num_agents": 4,
+  "lean_path": "/usr/local/bin/lean",
+  "max_runtime_seconds": 300,
+  "log_dir": "data/logs",
+  "agents": [
+    {
+      "id": "openai-agent-1",
+      "provider": "openai",
+      "model": "gpt-4",
+      "parameters": {
+        "temperature": 0.7,
+        "max_tokens": 2000
+      }
+    },
+    {
+      "id": "openai-agent-2",
+      "provider": "openai",
+      "model": "gpt-4",
+      "parameters": {
+        "temperature": 0.3,
+        "max_tokens": 2000
+      }
+    },
+    {
+      "id": "anthropic-agent-1",
+      "provider": "anthropic",
+      "model": "claude-3-sonnet",
+      "parameters": {
+        "temperature": 0.5,
+        "max_tokens": 4000
+      }
+    },
+    {
+      "id": "anthropic-agent-2",
+      "provider": "anthropic",
+      "model": "claude-3-opus",
+      "parameters": {
+        "temperature": 0.2,
+        "max_tokens": 4000
+      }
+    }
+  ]
+}
