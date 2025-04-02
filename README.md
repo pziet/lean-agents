@@ -2,7 +2,7 @@
 
 ## Project Task Checklist
 
-- [ ] **Set up Lean Project**  
+- [X] **Set up Lean Project**  
   - Create and configure `theorems.lean` with a main theorem plus sub-lemmas.
   - Verify that Lean can compile your initial theorem structure.
 
