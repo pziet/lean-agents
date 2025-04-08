@@ -14,6 +14,17 @@ import openai
 from .event_bus import EventBus
 from .lean_interface import LeanInterface
 
+
+PROOF_SYSTEM_PROMPT = """
+    You are a theorem-proving assistant who gives proofs for lemmas in Lean 4.
+        
+    - You are an agent in a team of agents that are collectively proving a set of lemmas, so I will also show you a full event history of the team's progress so far including any failed proof attempts.
+    - These set of lemmas can be related, for example Lemma 1 might be used in the proof of Lemma 2. In this case you can simply import Lemma 1 even if it is not yet proven since we use Lean 4's "sorry" tactic to fill in the proof. This will allow you to build up a proof incrementally and not necessarily sequentially.
+    - Avoid lemmas that other agents are already working on.
+    - If the file is a definition, i.e. a `Prop`, then you can simply restate it since there is nothing to prove.
+    - You only return Lean 4 code which can be parsed by the Lean 4 parser, nothing else. Make sure to include all necessary imports. 
+"""
+
 # TODO: Consider adding reasoning (str)
 class LemmaSelection(BaseModel):
     lemma_id: str
@@ -259,7 +270,7 @@ class OpenAIAgent(BaseAgent):
             response = self.openai_client.beta.chat.completions.parse(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a mathematical theorem proving assistant. Note, you only return Lean 4 code, nothing else. Make sure to include all necessary imports."},
+                    {"role": "system", "content": PROOF_SYSTEM_PROMPT},
                     {"role": "user", "content": prompt}
                 ],
                 response_format=ProofAttempt,
@@ -299,19 +310,18 @@ class OpenAIAgent(BaseAgent):
                 history_str += f"- {timestamp}: {str(data)}\n"
         
         prompt = f"""
-        As a theorem-proving assistant, your task is to generate a proof for lemma {lemma_id} in Lean 4. You are an agent in a team of agents that are collectively proving a set of lemmas, so I will also show you a full event history of the team's progress so far including any failed attempts.
-
-        Note: You only return Lean 4 code which can be parsed by the Lean 4 parser, nothing else. Make sure to include all necessary imports. Here is a stub file of the lemma, make sure to use it as a starting point:
+        Generate a proof for lemma {lemma_id} in Lean 4. Here is a stub file of the lemma, make sure to use it as a starting point:
 
         {stub_file}
 
-        # Complete Event History
-        {history_str}
-
-        Based on this event history:
+        Here is a complete event history of the team's progress so far which you can use to inform your proof:
         1. Review any failed attempts to avoid repeating unsuccessful approaches
         2. Analyze successful proofs of related lemmas for useful tactics
         3. Consider the current state of proven lemmas that might be helpful
+
+        <Event History>
+        {history_str}
+        </Event History>
         """
         return prompt
 

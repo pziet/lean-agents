@@ -1,6 +1,0 @@
-{"timestamp": 1744092420.1432278, "event_type": "Agent-openai-agent-2", "data": {"agent_id": "openai-agent-2", "lemma_id": "EvenSquare.lean", "timestamp": 1744092420.1432154}}
-{"timestamp": 1744092420.1413481, "event_type": "Agent-openai-agent-1", "data": {"agent_id": "openai-agent-1", "lemma_id": "EvenSquare.lean", "timestamp": 1744092420.1412897}}
-{"timestamp": 1744092422.8533702, "event_type": "Agent-openai-agent-2", "data": {"agent_id": "openai-agent-2", "lemma_id": "EvenSquare.lean", "proof": "'dict' object has no attribute 'success'", "error_message": null, "timestamp": 1744092422.853312}}
-{"timestamp": 1744092423.5433633, "event_type": "Agent-openai-agent-1", "data": {"agent_id": "openai-agent-1", "lemma_id": "EvenSquare.lean", "proof": "'dict' object has no attribute 'success'", "error_message": null, "timestamp": 1744092423.5432272}}
-{"timestamp": 1744092424.6636093, "event_type": "Agent-openai-agent-2", "data": {"agent_id": "openai-agent-2", "lemma_id": "isEven.lean", "timestamp": 1744092424.6635742}}
-{"timestamp": 1744092425.5412428, "event_type": "Agent-openai-agent-1", "data": {"agent_id": "openai-agent-1", "lemma_id": "Theorem.lean", "timestamp": 1744092425.5411754}}

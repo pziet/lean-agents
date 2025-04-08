@@ -1,3 +1,0 @@
-{"timestamp": 1744099720.8867548, "event_type": "Agent-openai-agent-1", "data": {"agent_id": "openai-agent-1", "lemma_id": "EvenSquare", "timestamp": 1744099720.8867106}}
-{"timestamp": 1744099744.1743605, "event_type": "Agent-openai-agent-1", "data": {"agent_id": "openai-agent-1", "lemma_id": "EvenSquare", "proof": "'dict' object has no attribute 'success'", "error_message": null, "timestamp": 1744099744.1742406}}
-{"timestamp": 1744099746.0366986, "event_type": "Agent-openai-agent-1", "data": {"agent_id": "openai-agent-1", "lemma_id": "EvenSquare", "timestamp": 1744099746.0366635}}

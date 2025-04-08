@@ -1,2 +1,0 @@
-{"timestamp": 1744098870.0165396, "event_type": "Agent-openai-agent-1", "data": {"agent_id": "openai-agent-1", "lemma_id": "isEven", "timestamp": 1744098870.0165122}}
-{"timestamp": 1744098874.7032907, "event_type": "Agent-openai-agent-1", "data": {"agent_id": "openai-agent-1", "lemma_id": "isEven", "proof": "'dict' object has no attribute 'success'", "error_message": null, "timestamp": 1744098874.7032318}}
