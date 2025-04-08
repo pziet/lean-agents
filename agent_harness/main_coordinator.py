@@ -29,9 +29,9 @@ class MainCoordinator:
         self._initialize_agents()
         
         # Subscribe to all events for logging
-        self.event_bus.subscribe("LemmaProven", self._log_event)
-        self.event_bus.subscribe("LemmaAttemptFailed", self._log_event)
-        self.event_bus.subscribe("AgentWorking", self._log_event)
+        self.event_bus.subscribe("LemmaProven", lambda data: self._log_event(data, "LemmaProven"))
+        self.event_bus.subscribe("LemmaAttemptFailed", lambda data: self._log_event(data, "LemmaAttemptFailed"))
+        self.event_bus.subscribe("AgentWorking", lambda data: self._log_event(data, "AgentWorking"))
     
     def _initialize_agents(self) -> None:
         """Initialize agents based on the configuration."""
@@ -41,14 +41,19 @@ class MainCoordinator:
             self.agents.append(agent)
             print(f"[MainCoordinator] Created agent: {agent.agent_id}")
     
-    def _log_event(self, data: Dict) -> None:
-        """Log an event to the log file."""
-        event_type = threading.current_thread().name
+    def _log_event(self, data: Dict, event_type: str = None) -> None:
+        """Log an event to the log file.
+        
+        Args:
+            data: The event data
+            event_type: The type of event being logged
+        """
+        # Use the provided event_type rather than thread name
         print(f"[MainCoordinator] Event: {event_type} - {data}")
         
         log_entry = {
             "timestamp": time.time(),
-            "event_type": event_type,  # This will be the event type
+            "event_type": event_type,
             "data": data
         }
         
