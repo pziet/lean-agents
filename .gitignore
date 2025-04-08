@@ -1,8 +1,11 @@
 junk.md
 sandbox.ipynb
 
-# env
+# env variables
 .env
+
+# virtual environment
+env/
 
 # Python
 __pycache__/

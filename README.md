@@ -7,7 +7,7 @@
   - Verify that Lean can compile your initial theorem structure.
 
 - [ ] **Implement Agent Harness**  
-  - Build the out the files in `agent_harness/`
+  - Build the out the files in `agent_harness/` PZ: (look at event bus, proving/attempting of lemmas in separate files with naming of them accordingly. Ask ChatAI for a clever way to log who did which proof maybe `even_square_{UUID}.lean`)
   - Create a logging system to record agent decisions, proof attempts, and successes.
   - Ensure agents run in parallel, and that they can see the full context of attempted proofs and accepted proofs!
 

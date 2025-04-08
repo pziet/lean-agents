@@ -25,6 +25,7 @@ class RunConfig:
     num_agents: int
     agent_configs: List[AgentConfig]
     lean_path: str
+    file_dir: str
     max_runtime_seconds: int = 300
     log_dir: str = "data/logs"
 
@@ -47,6 +48,7 @@ def load_config(config_path: str) -> RunConfig:
         num_agents=config_data.get("num_agents", len(agent_configs)),
         agent_configs=agent_configs,
         lean_path=config_data.get("lean_path", "lean"),
+        file_dir=config_data.get("file_dir", ""),
         max_runtime_seconds=config_data.get("max_runtime_seconds", 300),
         log_dir=config_data.get("log_dir", "data/logs")
     )
@@ -57,6 +59,7 @@ def save_config(config: RunConfig, config_path: str) -> None:
         "theorem_file": config.theorem_file,
         "num_agents": config.num_agents,
         "lean_path": config.lean_path,
+        "file_dir": config.file_dir,
         "max_runtime_seconds": config.max_runtime_seconds,
         "log_dir": config.log_dir,
         "agents": []

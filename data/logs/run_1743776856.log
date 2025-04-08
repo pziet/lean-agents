@@ -1,0 +1,6 @@
+{"timestamp": 1743776856.9788666, "event_type": "Agent-openai-agent-2", "data": {"agent_id": "openai-agent-2", "lemma_id": "EvenSquare.lean", "timestamp": 1743776856.978792}}
+{"timestamp": 1743776857.6741378, "event_type": "Agent-openai-agent-1", "data": {"agent_id": "openai-agent-1", "lemma_id": "EvenSquare.lean", "timestamp": 1743776857.6741195}}
+{"timestamp": 1743776860.5297072, "event_type": "Agent-openai-agent-1", "data": {"agent_id": "openai-agent-1", "lemma_id": "EvenSquare.lean", "proof": "check_proof() missing 2 required positional arguments: 'lemma_id' and 'agent_id'", "error_message": null, "timestamp": 1743776860.529624}}
+{"timestamp": 1743776860.8183775, "event_type": "Agent-openai-agent-2", "data": {"agent_id": "openai-agent-2", "lemma_id": "EvenSquare.lean", "proof": "check_proof() missing 2 required positional arguments: 'lemma_id' and 'agent_id'", "error_message": null, "timestamp": 1743776860.8183377}}
+{"timestamp": 1743776862.367319, "event_type": "Agent-openai-agent-1", "data": {"agent_id": "openai-agent-1", "lemma_id": "isEven.lean", "timestamp": 1743776862.3672552}}
+{"timestamp": 1743776862.8739471, "event_type": "Agent-openai-agent-2", "data": {"agent_id": "openai-agent-2", "lemma_id": "isEven.lean", "timestamp": 1743776862.8738997}}
