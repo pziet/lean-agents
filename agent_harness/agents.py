@@ -9,11 +9,14 @@ import random
 import time
 from typing import Optional, List, Dict, Any, Set
 import openai
-# TODO: Add anthropic
+import anthropic
 
 from .event_bus import EventBus
 from .lean_interface import LeanInterface
 
+LEMMA_SELECTION_SYSTEM_PROMPT = """
+    You are a theorem-proving assistant who gives proofs for lemmas in Lean 4.
+"""
 
 PROOF_SYSTEM_PROMPT = """
     You are a theorem-proving assistant who gives proofs for lemmas in Lean 4.
@@ -82,11 +85,81 @@ class BaseAgent(ABC):
         """Select a lemma to work on."""
         pass
     
+    def _create_simple_lemma_selection_prompt(self, available_lemmas, current_activities, event_history):
+        """Create a simple prompt with the raw event history."""
+        # Format available lemmas
+        available_lemmas_str = "\n".join([f"- {lemma}" for lemma in available_lemmas])
+        
+        # Format current agent activities
+        current_activities_str = "\n".join([
+            f"- Agent {agent_id} is working on {lemma_id}" 
+            for agent_id, lemma_id in current_activities.items()
+            if agent_id != self.agent_id
+        ]) or "No other agents are currently working on lemmas."
+        
+        # Format event history in a readable way
+        history_str = ""
+        for event_type, events in event_history.items():
+            history_str += f"\n## {event_type} Events:\n"
+            for event in events:
+                timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(event["timestamp"]))
+                data = event["data"]
+                history_str += f"- {timestamp}: {str(data)}\n"
+        
+        prompt = f"""
+        As a theorem-proving assistant, your task is to select the next lemma to work on.
+
+        # Available Lemmas
+        {available_lemmas_str}
+
+        # Current Agent Activities
+        {current_activities_str}
+
+        # Complete Event History
+        {history_str}
+
+        Based on this complete event history, please select the most strategic lemma for me (Agent {self.agent_id}) to work on next.
+        Consider factors like:
+        1. Avoid lemmas other agents are already working on
+        2. Consider lemmas that had failed attempts but might benefit from your approach
+        3. Look for lemmas that might build upon recently proven lemmas
+
+        Respond with only the lemma ID."
+        """
+        return prompt
+
     @abstractmethod
     def attempt_proof(self, lemma_id: str) -> bool:
         """Attempt to prove the given lemma. Return True if successful."""
         pass
     
+    def _create_proof_attempt_prompt(self, lemma_id: str, stub_file: str, event_history: Dict) -> str:
+        """Create a detailed prompt for proof generation using event history."""
+        # Format event history in a readable way
+        history_str = ""
+        for event_type, events in event_history.items():
+            history_str += f"\n## {event_type} Events:\n"
+            for event in events:
+                timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(event["timestamp"]))
+                data = event["data"]
+                history_str += f"- {timestamp}: {str(data)}\n"
+        
+        prompt = f"""
+        Generate a proof for lemma {lemma_id} in Lean 4. Here is a stub file of the lemma, make sure to use it as a starting point:
+
+        {stub_file}
+
+        Here is a complete event history of the team's progress so far which you can use to inform your proof:
+        1. Review any failed attempts to avoid repeating unsuccessful approaches
+        2. Analyze successful proofs of related lemmas for useful tactics
+        3. Consider the current state of proven lemmas that might be helpful
+
+        <Event History>
+        {history_str}
+        </Event History>
+        """
+        return prompt
+
     def on_lemma_proven(self, data: dict) -> None:
         """Handle notification that a lemma has been proven."""
         lemma_id = data.get("lemma_id")
@@ -185,7 +258,7 @@ class OpenAIAgent(BaseAgent):
             response = self.openai_client.beta.chat.completions.parse(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are a mathematical theorem proving assistant."},
+                    {"role": "system", "content": LEMMA_SELECTION_SYSTEM_PROMPT},
                     {"role": "user", "content": prompt}
                 ],
                 response_format=LemmaSelection,
@@ -209,49 +282,6 @@ class OpenAIAgent(BaseAgent):
             self.current_lemma = selected_lemma
             self.publish_working_on(selected_lemma)
             return selected_lemma
-    
-    def _create_simple_lemma_selection_prompt(self, available_lemmas, current_activities, event_history):
-        """Create a simple prompt with the raw event history."""
-        # Format available lemmas
-        available_lemmas_str = "\n".join([f"- {lemma}" for lemma in available_lemmas])
-        
-        # Format current agent activities
-        current_activities_str = "\n".join([
-            f"- Agent {agent_id} is working on {lemma_id}" 
-            for agent_id, lemma_id in current_activities.items()
-            if agent_id != self.agent_id
-        ]) or "No other agents are currently working on lemmas."
-        
-        # Format event history in a readable way
-        history_str = ""
-        for event_type, events in event_history.items():
-            history_str += f"\n## {event_type} Events:\n"
-            for event in events:
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(event["timestamp"]))
-                data = event["data"]
-                history_str += f"- {timestamp}: {str(data)}\n"
-        
-        prompt = f"""
-        As a theorem-proving assistant, your task is to select the next lemma to work on.
-
-        # Available Lemmas
-        {available_lemmas_str}
-
-        # Current Agent Activities
-        {current_activities_str}
-
-        # Complete Event History
-        {history_str}
-
-        Based on this complete event history, please select the most strategic lemma for me (Agent {self.agent_id}) to work on next.
-        Consider factors like:
-        1. Avoid lemmas other agents are already working on
-        2. Consider lemmas that had failed attempts but might benefit from your approach
-        3. Look for lemmas that might build upon recently proven lemmas
-
-        Respond with only the lemma ID."
-        """
-        return prompt
     
     def attempt_proof(self, lemma_id: str) -> bool:
         """Generate and attempt a proof using OpenAI with event bus awareness."""
@@ -298,33 +328,6 @@ class OpenAIAgent(BaseAgent):
             self.publish_attempt_failed(lemma_id, str(e))
             return False
 
-    def _create_proof_attempt_prompt(self, lemma_id: str, stub_file: str, event_history: Dict) -> str:
-        """Create a detailed prompt for proof generation using event history."""
-        # Format event history in a readable way
-        history_str = ""
-        for event_type, events in event_history.items():
-            history_str += f"\n## {event_type} Events:\n"
-            for event in events:
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(event["timestamp"]))
-                data = event["data"]
-                history_str += f"- {timestamp}: {str(data)}\n"
-        
-        prompt = f"""
-        Generate a proof for lemma {lemma_id} in Lean 4. Here is a stub file of the lemma, make sure to use it as a starting point:
-
-        {stub_file}
-
-        Here is a complete event history of the team's progress so far which you can use to inform your proof:
-        1. Review any failed attempts to avoid repeating unsuccessful approaches
-        2. Analyze successful proofs of related lemmas for useful tactics
-        3. Consider the current state of proven lemmas that might be helpful
-
-        <Event History>
-        {history_str}
-        </Event History>
-        """
-        return prompt
-
 
 class AnthropicAgent(BaseAgent):
     """Agent that uses Anthropic models to generate proofs."""
@@ -333,6 +336,7 @@ class AnthropicAgent(BaseAgent):
         super().__init__(agent_id, event_bus, lean_interface)
         self.model = model
         self.parameters = parameters or {}
+        self.anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
         print(f"[agents] Created Anthropic agent {agent_id} using model {model}")
     
     def pick_lemma(self) -> Optional[str]:
@@ -351,48 +355,119 @@ class AnthropicAgent(BaseAgent):
         if not available:
             return None
         
-        # For Anthropic, let's use a slightly different strategy:
-        # Pick a random lemma, but favor those not recently attempted by others
-        selected_lemma = random.choice(available)
+        # Get the complete event bus history
+        event_history = self.event_bus.get_history()
+
+        # Get current activities of other agents
+        current_activities = self.event_bus.get_current_agent_activities()
+
+        # Create a simple prompt with the raw event history
+        prompt = self._create_simple_lemma_selection_prompt(
+            available, 
+            current_activities,
+            event_history
+        )
         
-        self.current_lemma = selected_lemma
-        print(f"Anthropic Agent {self.agent_id} picked lemma: {selected_lemma}")
+        try:
+            # Ask the LLM to select a lemma
+            response = self.anthropic_client.messages.create(
+                model=self.model,
+                tools=[
+                    {
+                        "name": "lemma_selection",
+                        "description": "Select a lemma to work on",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {
+                                "lemma_id": {
+                                    "type": "string",
+                                    "description": "The ID of the lemma to work on"
+                                }
+                            }
+                        },
+                        "required": ["lemma_id"]
+                    }
+                ],
+                tool_choice={"type": "tool", "name": "lemma_selection"},
+                system=LEMMA_SELECTION_SYSTEM_PROMPT,
+                messages=[
+                    {"role": "user", "content": prompt}
+                    ],
+                max_tokens=10000,
+                # temperature=self.parameters.get("temperature", 0.2)
+            )
+
+            # Extract the lemma from the response
+            selected_lemma = response.content[0].input.get("lemma_id")
+            self.current_lemma = selected_lemma
+
+            # Publish that we're working on this lemma
+            print(f"[agents] Anthropic Agent {self.agent_id} picked lemma: {selected_lemma}")
+            self.publish_working_on(selected_lemma)
+            return selected_lemma
         
-        # Publish that we're working on this lemma
-        self.publish_working_on(selected_lemma)
-        
-        return selected_lemma
+        except Exception as e:
+            print(f"Error in Anthropic lemma selection: {e}")
+            # Fallback to simple selection
+            selected_lemma = random.choice(available)
+            self.current_lemma = selected_lemma
+            self.publish_working_on(selected_lemma)
+            return selected_lemma
     
     def attempt_proof(self, lemma_id: str) -> bool:
         """Generate and attempt a proof using Anthropic with event bus awareness."""
         print(f"Anthropic Agent {self.agent_id} attempting to prove {lemma_id} with {self.model}")
         
-        # Get event bus state to inform the proof attempt
-        event_state = self.get_event_bus_state()
-        
-        # Examine failed attempts to avoid repeating mistakes
-        failed_approaches = []
-        for failed in event_state["failed_attempts"]:
-            if failed["lemma_id"] == lemma_id:
-                failed_approaches.append(failed)
-        
-        # Use information about proven lemmas to inform our approach
-        # (In a real implementation, we would analyze the proven lemmas for useful tactics)
-        
-        # Simulated proof attempt
-        success = random.random() > 0.6  # 40% chance of success
-        
-        if success:
-            proof = f"by {self.model}\n  -- simulated proof for {lemma_id} from Anthropic"
-            self.publish_proof(lemma_id, proof)
-        else:
-            # Publish the failed attempt with details
-            error = f"Simulated failure after considering {len(failed_approaches)} previous attempts"
-            self.publish_attempt_failed(lemma_id, error)
-        
-        time.sleep(1)
-        return success
+        # Get the complete event history
+        event_history = self.event_bus.get_history()
+        print(f"[agents] Anthropic Agent {self.agent_id} event history:\n{json.dumps(event_history, indent=2)}")
 
+        # Create a proof generation prompt
+        stub_file = self.lean_interface.get_stub_file(lemma_id)
+        prompt = self._create_proof_attempt_prompt(lemma_id, stub_file, event_history)
+
+        try: 
+            # Ask the LLM to generate a proof
+            response = self.anthropic_client.messages.create(
+                model=self.model,
+                tools=[
+                    {
+                        "name": "proof_attempt",
+                        "description": "Attempt to prove a lemma in Lean 4",
+                        "input_schema": {
+                            "type": "object",
+                            "properties": {
+                                "proof": {"type": "string", "description": "The proof to attempt which must be valid Lean 4 code"}
+                            },
+                            "required": ["proof"]
+                        }
+                    }
+                ],
+                tool_choice={"type": "tool", "name": "proof_attempt"},
+                system=PROOF_SYSTEM_PROMPT,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=10000,
+                # temperature=self.parameters.get("temperature", 0.2)
+            )
+
+            # Extract the proof attempt from the response
+            proof_attempt = response.content[0].input.get("proof")
+            print(f"[agents] Anthropic Agent {self.agent_id} generated proof:\n {proof_attempt}")
+            review_proof = self.lean_interface.check_proof(proof_attempt, lemma_id, self.agent_id)
+            print(f"[agents] Anthropic Agent {self.agent_id} reviewed proof:\n{json.dumps(review_proof, indent=2)}")
+            if review_proof.get("success"):
+                self.publish_proof(lemma_id, proof_attempt)
+                return True
+            else:
+                self.publish_attempt_failed(lemma_id, proof_attempt, review_proof.get("output"))
+                return False
+
+        except Exception as e:
+            print(f"Error in Anthropic proof attempt: {e}")
+            self.publish_attempt_failed(lemma_id, str(e))
+            return False
 
 # Factory function to create the right type of agent based on provider
 def create_agent(config, event_bus, lean_interface):
