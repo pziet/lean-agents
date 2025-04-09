@@ -1,3 +1,4 @@
+import Mathlib.Data.Nat.Basic
 import Mathlib.Tactic
 import InjectiveComp.stubs.Injective
 import InjectiveComp.stubs.InjectiveCancelOuter
