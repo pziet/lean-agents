@@ -150,7 +150,7 @@ class BaseAgent(ABC):
 class OpenAIAgent(BaseAgent):
     """Agent that uses OpenAI models to generate proofs."""
     def __init__(self, agent_id: str, event_bus: EventBus, lean_interface: LeanInterface, 
-                 model: str = "gpt-4", parameters: Dict[str, Any] = None):
+                 model: str = "gpt-4o", parameters: Dict[str, Any] = None):
         super().__init__(agent_id, event_bus, lean_interface)
         self.model = model
         self.parameters = parameters or {}
