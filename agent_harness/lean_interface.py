@@ -43,7 +43,7 @@ class LeanInterface:
         try:
             os.remove(attempt_file)
         except OSError as e:
-            print(f"Error deleting attempt file {attempt_file}: {e}")
+            print(f"[lean_interface] Error deleting attempt file {attempt_file}: {e}")
     
     def check_proof(self, proof_script: str, lemma_id: str, agent_id: str) -> Tuple[bool, Optional[str]]:
         """
@@ -112,7 +112,7 @@ class LeanInterface:
         with open(filepath, 'w') as f:
             f.write(proof_script)
         
-        print(f"Saved proof for {lemma_id} to {filepath}")
+        print(f"[lean_interface] Saved proof for {lemma_id} to {filepath}")
         return filepath
     
     def get_available_lemmas(self) -> List[str]:

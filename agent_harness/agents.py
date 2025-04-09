@@ -166,7 +166,7 @@ class BaseAgent(ABC):
         agent_id = data.get("agent_id")
         
         if lemma_id and agent_id != self.agent_id:
-            print(f"Agent {self.agent_id} notified that {lemma_id} was proven by {agent_id}")
+            print(f"[agents] Agent {self.agent_id} notified that {lemma_id} was proven by {agent_id}")
             self.proven_lemmas.add(lemma_id)
             
             # If this was our current lemma, pick a new one
@@ -188,7 +188,7 @@ class BaseAgent(ABC):
         """Publish a successful proof to the shared folder and notify others."""
         # Save the proof to the proven directory
         filepath = self.lean_interface.save_proven_lemma(lemma_id, proof)
-        print(f"Agent {self.agent_id} proved lemma: {lemma_id}")
+        print(f"[agents] Agent {self.agent_id} proved lemma: {lemma_id}")
         
         # Notify other agents
         self.event_bus.publish("LemmaProven", {
@@ -324,7 +324,7 @@ class OpenAIAgent(BaseAgent):
                 return False
                 
         except Exception as e:
-            print(f"Error in OpenAI proof attempt: {e}")
+            print(f"[agents] Error in OpenAI proof attempt: {e}")
             self.publish_attempt_failed(lemma_id, str(e))
             return False
 
@@ -407,7 +407,7 @@ class AnthropicAgent(BaseAgent):
             return selected_lemma
         
         except Exception as e:
-            print(f"Error in Anthropic lemma selection: {e}")
+            print(f"[agents] Error in Anthropic lemma selection: {e}")
             # Fallback to simple selection
             selected_lemma = random.choice(available)
             self.current_lemma = selected_lemma
@@ -416,7 +416,7 @@ class AnthropicAgent(BaseAgent):
     
     def attempt_proof(self, lemma_id: str) -> bool:
         """Generate and attempt a proof using Anthropic with event bus awareness."""
-        print(f"Anthropic Agent {self.agent_id} attempting to prove {lemma_id} with {self.model}")
+        print(f"[agents] Anthropic Agent {self.agent_id} attempting to prove {lemma_id} with {self.model}")
         
         # Get the complete event history
         event_history = self.event_bus.get_history()
@@ -465,7 +465,7 @@ class AnthropicAgent(BaseAgent):
                 return False
 
         except Exception as e:
-            print(f"Error in Anthropic proof attempt: {e}")
+            print(f"[agents] Error in Anthropic proof attempt: {e}")
             self.publish_attempt_failed(lemma_id, str(e))
             return False
 

@@ -4,12 +4,12 @@ from agent_harness import load_config, MainCoordinator
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python run.py <config_file>")
+        print("[run] Usage: python run.py <config_file>")
         return
     
     config_file = sys.argv[1]
     if not os.path.exists(config_file):
-        print(f"Config file not found: {config_file}")
+        print(f"[run] Config file not found: {config_file}")
         return
     
     # Load configuration
