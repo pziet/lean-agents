@@ -126,10 +126,6 @@ class LeanInterface:
         proven = {f.replace('.lean', '') for f in os.listdir(self.proven_dir)}
         return sorted(list(stubs - proven))
 
-    def get_proven_lemmas(self) -> List[str]:
-        """Get a list of proven lemmas."""
-        return sorted(list(os.listdir(self.proven_dir)))
-
     def get_file(self, lemma_name: str, file_type: str = "stubs") -> str:
         """Get a lemma file from either stubs or proven directory.
         
