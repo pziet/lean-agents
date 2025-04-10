@@ -80,9 +80,9 @@ class MainCoordinator:
                     print(f"[Agent-{agent.agent_id}] Sleeping for 1 second before next attempt")
                     time.sleep(1)
             else:
-                # No lemmas available, sleep for a bit
-                print(f"[Agent-{agent.agent_id}] No lemmas available, sleeping for 2 seconds")
-                time.sleep(2)
+                # No lemmas available
+                print("[MainCoordinator] All lemmas have been proven. Stopping simulation.")
+                self.running = False
         print(f"[Agent-{agent.agent_id}] Worker thread terminated")
     
     def start(self) -> None:
@@ -118,9 +118,14 @@ class MainCoordinator:
         duration = self.config.max_runtime_seconds
         print(f"[MainCoordinator] Running for {duration} seconds...")
         self.start()
+        end_time = time.time() + duration
         print(f"[MainCoordinator] All agents started, sleeping for {duration} seconds")
-        time.sleep(duration)
-        print(f"[MainCoordinator] Duration complete, stopping all agents")
+
+        while time.time() < end_time and self.running:
+            #  Do nothing, just wait for the duration to pass
+            time.sleep(1)
+
+        print(f"[MainCoordinator] Simulation complete, stopping all agents")
         self.stop()
         
         # Print summary
