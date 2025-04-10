@@ -85,6 +85,22 @@ class BaseAgent(ABC):
         """Select a lemma to work on."""
         pass
     
+    @abstractmethod
+    def attempt_proof(self, lemma_id: str) -> bool:
+        """Attempt to prove the given lemma. Return True if successful."""
+        pass
+    
+    def _format_event_history(self, event_history: Dict) -> str:
+        """Format the event history in a readable way."""
+        history_str = ""
+        for event_type, events in event_history.items():
+            history_str += f"\n## {event_type} Events:\n"
+            for event in events:
+                timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(event["timestamp"]))
+                data = event["data"]
+                history_str += f"- {timestamp}: {str(data)}\n"
+        return history_str
+    
     def _create_simple_lemma_selection_prompt(self, available_lemmas, current_activities, event_history):
         """Create a simple prompt with the raw event history."""
         # Format available lemmas
@@ -98,13 +114,7 @@ class BaseAgent(ABC):
         ]) or "No other agents are currently working on lemmas."
         
         # Format event history in a readable way
-        history_str = ""
-        for event_type, events in event_history.items():
-            history_str += f"\n## {event_type} Events:\n"
-            for event in events:
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(event["timestamp"]))
-                data = event["data"]
-                history_str += f"- {timestamp}: {str(data)}\n"
+        history_str = self._format_event_history(event_history)
         
         prompt = f"""
         As a theorem-proving assistant, your task is to select the next lemma to work on.
@@ -127,22 +137,10 @@ class BaseAgent(ABC):
         Respond with only the lemma ID."
         """
         return prompt
-
-    @abstractmethod
-    def attempt_proof(self, lemma_id: str) -> bool:
-        """Attempt to prove the given lemma. Return True if successful."""
-        pass
     
     def _create_proof_attempt_prompt(self, lemma_id: str, stub_file: str, event_history: Dict) -> str:
         """Create a detailed prompt for proof generation using event history."""
-        # Format event history in a readable way
-        history_str = ""
-        for event_type, events in event_history.items():
-            history_str += f"\n## {event_type} Events:\n"
-            for event in events:
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(event["timestamp"]))
-                data = event["data"]
-                history_str += f"- {timestamp}: {str(data)}\n"
+        history_str = self._format_event_history(event_history)
         
         prompt = f"""
         Generate a proof for lemma {lemma_id} in Lean 4. Here is a stub file of the lemma, make sure to use it as a starting point:
