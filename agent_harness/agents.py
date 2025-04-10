@@ -101,15 +101,27 @@ class BaseAgent(ABC):
                 history_str += f"- {timestamp}: {str(data)}\n"
         return history_str
     
+    def _format_proven_lemmas(self) -> str:
+        """Format the proven lemmas in a readable way."""
+        return "\n".join([
+            f"{i+1}. {lemma}\n"
+            f"-----------------------------\n"
+            f"{self.lean_interface.get_file(lemma, 'proven')}"
+            for i, lemma in enumerate(self.proven_lemmas)
+        ])
+
     def _create_simple_lemma_selection_prompt(self, available_lemmas, current_activities, event_history):
         """Create a simple prompt with the raw event history."""
         # Format available lemmas
         available_lemmas_str = "\n".join([
             f"{i+1}. {lemma}\n"
             f"-----------------------------\n"
-            f"{self.lean_interface.get_stub_file(lemma)}"
+            f"{self.lean_interface.get_file(lemma, 'stubs')}"
             for i, lemma in enumerate(available_lemmas)
         ])
+
+        # Format proven lemmas
+        proven_lemmas_str = self._format_proven_lemmas()
 
         # Format current agent activities
         current_activities_str = "\n".join([
@@ -123,18 +135,24 @@ class BaseAgent(ABC):
         
         prompt = f"""
         As a theorem-proving assistant, your task is to select the next lemma to work on. 
-        # Lemma names
+        # Available Lemmas
         {available_lemmas}
 
-        # Available Lemmas and their stubs
+        <Available Lemmas and their stubs>
         {available_lemmas_str}
+        </Available Lemmas and their stubs>
 
-        # Current Agent Activities
+        <Proven Lemmas and their proofs>
+        {proven_lemmas_str if proven_lemmas_str else "No lemmas have been proven yet."}
+        </Proven Lemmas and their proofs>
+
+        <Current Agent Activities>
         {current_activities_str}
+        </Current Agent Activities>
 
-        # Complete Event History
+        <Complete Event History>
         {history_str if history_str else "No event history yet."}
-
+        </Complete Event History>
         Based on this complete event history, please select the most strategic lemma for me (Agent {self.agent_id}) to work on next.
         Consider factors like:
         1. Avoid lemmas other agents are already working on
@@ -149,7 +167,8 @@ class BaseAgent(ABC):
     def _create_proof_attempt_prompt(self, lemma_id: str, stub_file: str, event_history: Dict) -> str:
         """Create a detailed prompt for proof generation using event history."""
         history_str = self._format_event_history(event_history)
-        
+        proven_lemmas_str = self._format_proven_lemmas()
+
         prompt = f"""
         Generate a proof for lemma {lemma_id} in Lean 4. Here is a stub file of the lemma, make sure to use it as a starting point:
 
@@ -163,6 +182,11 @@ class BaseAgent(ABC):
         <Event History>
         {history_str}
         </Event History>
+
+        Here are the lemmas that have been proven so far:
+        <Proven Lemmas>
+        {proven_lemmas_str}
+        </Proven Lemmas>
         """
         return prompt
 
@@ -296,7 +320,7 @@ class OpenAIAgent(BaseAgent):
         event_history = self.event_bus.get_history()
         print(f"[agents] OpenAI Agent {self.agent_id} event history:\n{json.dumps(event_history, indent=2)}")
         # Create a proof generation prompt
-        stub_file = self.lean_interface.get_stub_file(lemma_id)
+        stub_file = self.lean_interface.get_file(lemma_id, "stubs")
         prompt = self._create_proof_attempt_prompt(lemma_id, stub_file, event_history)
         
         try:
@@ -426,7 +450,7 @@ class AnthropicAgent(BaseAgent):
         print(f"[agents] Anthropic Agent {self.agent_id} event history:\n{json.dumps(event_history, indent=2)}")
 
         # Create a proof generation prompt
-        stub_file = self.lean_interface.get_stub_file(lemma_id)
+        stub_file = self.lean_interface.get_file(lemma_id, "stubs")
         prompt = self._create_proof_attempt_prompt(lemma_id, stub_file, event_history)
 
         try: 

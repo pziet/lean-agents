@@ -120,12 +120,17 @@ class LeanInterface:
         stubs = {f.replace('.lean', '') for f in os.listdir(self.stubs_dir)}
         proven = {f.replace('.lean', '') for f in os.listdir(self.proven_dir)}
         return sorted(list(stubs - proven))
-    
-    def get_stub_file(self, lemma_id: str) -> str:
-        """Get the stub file for a lemma."""
-        stub_file = os.path.join(self.lean_path, self.file_dir, "stubs", f"{lemma_id}.lean")
-        print(f"[lean_interface] Stub file: {stub_file}")
-        with open(stub_file, "r") as f:
+
+    def get_file(self, lemma_name: str, file_type: str = "stubs") -> str:
+        """Get a lemma file from either stubs or proven directory.
+        
+        Args:
+            lemma_id: The ID of the lemma
+            file_type: Either "stubs" or "proven"
+        """
+        file_path = os.path.join(self.lean_path, self.file_dir, file_type, f"{lemma_name}.lean")
+        print(f"[lean_interface] Getting {file_type} file: {file_path}")
+        with open(file_path, "r") as f:
             return f.read()
 
 
