@@ -253,7 +253,6 @@ class OpenAIAgent(BaseAgent):
         )
         
         try:
-            # TODO: Review temperature
             # Ask the LLM to select a lemma
             response = self.openai_client.beta.chat.completions.parse(
                 model=self.model,
@@ -262,7 +261,7 @@ class OpenAIAgent(BaseAgent):
                     {"role": "user", "content": prompt}
                 ],
                 response_format=LemmaSelection,
-                # temperature=self.parameters.get("temperature", 0.2)
+                **self.parameters
             )
         
             # Extract the lemma from the response
@@ -296,7 +295,6 @@ class OpenAIAgent(BaseAgent):
         
         try:
             # Ask the LLM to generate a proof
-            # TODO: Review temperature and passing in **kwargs from when agent is defined in config json.
             response = self.openai_client.beta.chat.completions.parse(
                 model=self.model,
                 messages=[
@@ -304,8 +302,8 @@ class OpenAIAgent(BaseAgent):
                     {"role": "user", "content": prompt}
                 ],
                 response_format=ProofAttempt,
+                **self.parameters
             )
-            
             # Extract the proof attempt from the response
             proof_attempt = response.choices[0].message.parsed.proof
             print(f"[agents] OpenAI Agent {self.agent_id} generated proof:\n {proof_attempt}")
@@ -393,8 +391,7 @@ class AnthropicAgent(BaseAgent):
                 messages=[
                     {"role": "user", "content": prompt}
                     ],
-                max_tokens=10000,
-                # temperature=self.parameters.get("temperature", 0.2)
+                **self.parameters
             )
 
             # Extract the lemma from the response
@@ -448,8 +445,7 @@ class AnthropicAgent(BaseAgent):
                 messages=[
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=10000,
-                # temperature=self.parameters.get("temperature", 0.2)
+                **self.parameters
             )
 
             # Extract the proof attempt from the response
