@@ -66,7 +66,7 @@ class BaseAgent(ABC):
         
         # Get recent failed attempts
         failed_attempts = []
-        for event in self.event_bus.get_history("LemmaAttemptFailed", 10).get("LemmaAttemptFailed", []):
+        for event in self.event_bus.get_history("LemmaAttemptFailed").get("LemmaAttemptFailed", []):
             failed_attempts.append(event["data"])
         
         # Get proven lemmas

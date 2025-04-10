@@ -43,7 +43,7 @@ class EventBus:
         if event_type in self._subscribers and callback in self._subscribers[event_type]:
             self._subscribers[event_type].remove(callback)
     
-    def get_history(self, event_type: str = None, limit: int = None) -> Dict[str, List[Dict[str, Any]]]:
+    def get_history(self, event_type: str = None, limit: int = 30) -> Dict[str, List[Dict[str, Any]]]:
         """
         Get event history, optionally filtered by event type.
         
