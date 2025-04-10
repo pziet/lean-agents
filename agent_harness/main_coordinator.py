@@ -140,6 +140,9 @@ class MainCoordinator:
         
         # Print event bus statistics
         self._print_event_bus_statistics()
+
+        # Delete all proven lemmas
+        self.lean_interface.delete_proven_lemmas()
     
     def _print_event_bus_statistics(self) -> None:
         """Print statistics from the event bus."""

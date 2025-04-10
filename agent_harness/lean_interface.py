@@ -142,4 +142,7 @@ class LeanInterface:
         with open(file_path, "r") as f:
             return f.read()
 
-
+    def delete_proven_lemmas(self) -> None:
+        """Delete all proven lemmas."""
+        for file in os.listdir(self.proven_dir):
+            os.remove(os.path.join(self.proven_dir, file))
