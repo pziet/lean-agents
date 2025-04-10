@@ -267,8 +267,7 @@ class OpenAIAgent(BaseAgent):
     def pick_lemma(self) -> Optional[str]:
         """Pick a lemma to work on by showing the full event bus history to the LLM."""
         # Get all available lemmas that aren't already proven
-        available_lemmas = [lemma for lemma in self.lean_interface.get_available_lemmas() 
-                            if lemma not in self.lean_interface.get_proven_lemmas()]
+        available_lemmas = self.lean_interface.get_available_lemmas() 
         
         if not available_lemmas:
             return None
@@ -377,11 +376,8 @@ class AnthropicAgent(BaseAgent):
         event_state = self.get_event_bus_state()
         current_activities = event_state["current_activities"]
         
-        # Find available lemmas that are not proven and not being worked on
-        available = [lemma for lemma in self.lean_interface.get_available_lemmas() 
-                     if lemma not in self.lean_interface.get_proven_lemmas()]
-        
-        if not available:
+        available_lemmas = self.lean_interface.get_available_lemmas()        
+        if not available_lemmas:
             return None
         
         # Get the complete event bus history
@@ -392,7 +388,7 @@ class AnthropicAgent(BaseAgent):
 
         # Create a simple prompt with the raw event history
         prompt = self._create_simple_lemma_selection_prompt(
-            available, 
+            available_lemmas, 
             current_activities,
             event_history
         )
@@ -437,7 +433,7 @@ class AnthropicAgent(BaseAgent):
         except Exception as e:
             print(f"[agents] Error in Anthropic lemma selection: {e}")
             # Fallback to simple selection
-            selected_lemma = random.choice(available)
+            selected_lemma = random.choice(available_lemmas)
             self.current_lemma = selected_lemma
             self.publish_working_on(selected_lemma)
             return selected_lemma
