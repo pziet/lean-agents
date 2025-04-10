@@ -268,7 +268,7 @@ class OpenAIAgent(BaseAgent):
         """Pick a lemma to work on by showing the full event bus history to the LLM."""
         # Get all available lemmas that aren't already proven
         available_lemmas = self.lean_interface.get_available_lemmas() 
-        
+        print(f"[agents] OpenAI Agent {self.agent_id} available lemmas: {available_lemmas}")
         if not available_lemmas:
             return None
         
@@ -377,6 +377,7 @@ class AnthropicAgent(BaseAgent):
         current_activities = event_state["current_activities"]
         
         available_lemmas = self.lean_interface.get_available_lemmas()        
+        print(f"[agents] Anthropic Agent {self.agent_id} available lemmas: {available_lemmas}")
         if not available_lemmas:
             return None
         

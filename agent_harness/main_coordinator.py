@@ -20,10 +20,12 @@ class MainCoordinator:
         self.agents: List[BaseAgent] = []
         self.agent_threads: Dict[str, threading.Thread] = {}
         self.running = False
-        self.log_file = os.path.join(config.log_dir, f"run_{int(time.time())}.log")
+        self.run_log_dir = config.log_dir
+        log_file_name = getattr(config, 'log_file_name', f"run_{int(time.time())}.log")
+        self.log_file = os.path.join(self.run_log_dir, log_file_name)
         
-        # Create log directory if it doesn't exist
-        os.makedirs(config.log_dir, exist_ok=True)
+        # Create the specific log directory if it doesn't exist
+        os.makedirs(self.run_log_dir, exist_ok=True)
         
         # Initialize agents based on config
         self._initialize_agents()

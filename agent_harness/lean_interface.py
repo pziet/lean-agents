@@ -122,6 +122,7 @@ class LeanInterface:
     
     def get_available_lemmas(self) -> List[str]:
         """Get a list of lemmas from the theorem file that need to be proven."""
+        print(f"[lean_interface] Getting available lemmas from {self.stubs_dir}")
         stubs = {f.replace('.lean', '') for f in os.listdir(self.stubs_dir)}
         proven = {f.replace('.lean', '') for f in os.listdir(self.proven_dir)}
         return sorted(list(stubs - proven))
