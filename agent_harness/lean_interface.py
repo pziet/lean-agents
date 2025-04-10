@@ -108,7 +108,12 @@ class LeanInterface:
         """Save a proven lemma to the proven directory."""
         filename = f"{lemma_id}.lean"
         filepath = os.path.join(self.proven_dir, filename)
-        
+        print("================================================")
+        print(f"[lean_interface] Saving proof for {lemma_id} to {filepath}")
+        print("================================================")
+        if os.path.exists(filepath):
+            print(f"[lean_interface] Proof for {lemma_id} already exists at {filepath}")
+            return None
         with open(filepath, 'w') as f:
             f.write(proof_script)
         
@@ -120,6 +125,10 @@ class LeanInterface:
         stubs = {f.replace('.lean', '') for f in os.listdir(self.stubs_dir)}
         proven = {f.replace('.lean', '') for f in os.listdir(self.proven_dir)}
         return sorted(list(stubs - proven))
+
+    def get_proven_lemmas(self) -> List[str]:
+        """Get a list of proven lemmas."""
+        return sorted(list(os.listdir(self.proven_dir)))
 
     def get_file(self, lemma_name: str, file_type: str = "stubs") -> str:
         """Get a lemma file from either stubs or proven directory.

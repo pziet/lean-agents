@@ -43,7 +43,7 @@ class BaseAgent(ABC):
         self.agent_id = agent_id
         self.event_bus = event_bus
         self.lean_interface = lean_interface
-        self.available_lemmas = lean_interface.get_available_lemmas()
+        # self.available_lemmas = lean_interface.get_available_lemmas()
         self.proven_lemmas: Set[str] = set()
         self.current_lemma: Optional[str] = None
         
@@ -197,7 +197,7 @@ class BaseAgent(ABC):
         
         if lemma_id and agent_id != self.agent_id:
             print(f"[agents] Agent {self.agent_id} notified that {lemma_id} was proven by {agent_id}")
-            self.proven_lemmas.add(lemma_id)
+            # self.proven_lemmas.add(lemma_id)
             
             # If this was our current lemma, pick a new one
             if self.current_lemma == lemma_id:
@@ -218,18 +218,22 @@ class BaseAgent(ABC):
         """Publish a successful proof to the shared folder and notify others."""
         # Save the proof to the proven directory
         filepath = self.lean_interface.save_proven_lemma(lemma_id, proof)
-        print(f"[agents] Agent {self.agent_id} proved lemma: {lemma_id}")
+        if filepath:
+            print(f"[agents] Agent {self.agent_id} proved lemma: {lemma_id}")
+            # Notify other agents
+            self.event_bus.publish("LemmaProven", {
+                "lemma_id": lemma_id,
+                "proof": proof,
+                "agent_id": self.agent_id,
+                "filepath": filepath
+            })
         
-        # Notify other agents
-        self.event_bus.publish("LemmaProven", {
-            "lemma_id": lemma_id,
-            "proof": proof,
-            "agent_id": self.agent_id,
-            "filepath": filepath
-        })
+            # Update our own record
+            self.proven_lemmas.add(lemma_id)
+        else:
+            print(f"[agents] Agent {self.agent_id} got a proof, but {lemma_id} is already proven")
         
-        # Update our own record
-        self.proven_lemmas.add(lemma_id)
+
     
     def publish_working_on(self, lemma_id: str) -> None:
         """Publish that this agent is working on a specific lemma."""
@@ -263,8 +267,8 @@ class OpenAIAgent(BaseAgent):
     def pick_lemma(self) -> Optional[str]:
         """Pick a lemma to work on by showing the full event bus history to the LLM."""
         # Get all available lemmas that aren't already proven
-        available_lemmas = [lemma for lemma in self.available_lemmas 
-                            if lemma not in self.proven_lemmas]
+        available_lemmas = [lemma for lemma in self.lean_interface.get_available_lemmas() 
+                            if lemma not in self.lean_interface.get_proven_lemmas()]
         
         if not available_lemmas:
             return None
@@ -373,12 +377,9 @@ class AnthropicAgent(BaseAgent):
         event_state = self.get_event_bus_state()
         current_activities = event_state["current_activities"]
         
-        # Avoid picking lemmas that other agents are working on
-        busy_lemmas = set(current_activities.values())
-        
         # Find available lemmas that are not proven and not being worked on
-        available = [lemma for lemma in self.available_lemmas 
-                     if lemma not in self.proven_lemmas and lemma not in busy_lemmas]
+        available = [lemma for lemma in self.lean_interface.get_available_lemmas() 
+                     if lemma not in self.lean_interface.get_proven_lemmas()]
         
         if not available:
             return None
