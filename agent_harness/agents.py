@@ -104,8 +104,13 @@ class BaseAgent(ABC):
     def _create_simple_lemma_selection_prompt(self, available_lemmas, current_activities, event_history):
         """Create a simple prompt with the raw event history."""
         # Format available lemmas
-        available_lemmas_str = "\n".join([f"- {lemma}" for lemma in available_lemmas])
-        
+        available_lemmas_str = "\n".join([
+            f"{i+1}. {lemma}\n"
+            f"-----------------------------\n"
+            f"{self.lean_interface.get_stub_file(lemma)}"
+            for i, lemma in enumerate(available_lemmas)
+        ])
+
         # Format current agent activities
         current_activities_str = "\n".join([
             f"- Agent {agent_id} is working on {lemma_id}" 
@@ -117,16 +122,18 @@ class BaseAgent(ABC):
         history_str = self._format_event_history(event_history)
         
         prompt = f"""
-        As a theorem-proving assistant, your task is to select the next lemma to work on.
+        As a theorem-proving assistant, your task is to select the next lemma to work on. 
+        # Lemma names
+        {available_lemmas}
 
-        # Available Lemmas
+        # Available Lemmas and their stubs
         {available_lemmas_str}
 
         # Current Agent Activities
         {current_activities_str}
 
         # Complete Event History
-        {history_str}
+        {history_str if history_str else "No event history yet."}
 
         Based on this complete event history, please select the most strategic lemma for me (Agent {self.agent_id}) to work on next.
         Consider factors like:
@@ -134,8 +141,9 @@ class BaseAgent(ABC):
         2. Consider lemmas that had failed attempts but might benefit from your approach
         3. Look for lemmas that might build upon recently proven lemmas
 
-        Respond with only the lemma ID."
+        Respond with only the lemma name."
         """
+        print(f"[agents] Lemma selection prompt:\n{prompt}")
         return prompt
     
     def _create_proof_attempt_prompt(self, lemma_id: str, stub_file: str, event_history: Dict) -> str:
