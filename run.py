@@ -88,8 +88,9 @@ def main():
 
     config_files = discover_configs(args.config_dir)
     theorem_sets = discover_theorem_sets(args.math_dir)
+    # remove mock
+    theorem_sets = [t for t in theorem_sets if t != "mock"]
     print(f"Theorem sets: {theorem_sets}") 
-    theorem_sets = ["mock", "bijective_comp"]
     if not config_files:
         print(f"[ExperimentRunner] No config files found in {args.config_dir}")
         return
