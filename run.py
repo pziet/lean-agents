@@ -4,7 +4,7 @@ import glob
 import argparse
 import time
 
-from agent_harness.config import load_config, RunConfig
+from agent_harness.config import load_config
 from agent_harness.main_coordinator import MainCoordinator
 
 # --- Configuration ---
@@ -12,6 +12,8 @@ DEFAULT_CONFIG_DIR = "configs"
 DEFAULT_MATH_DIR_BASE = "/home/ztkpat001/repos/lean-agents/math" # Adjust if needed
 DEFAULT_LOG_DIR = "data/logs"
 DEFAULT_NSIM = 1
+# TODO: consider adding "partial-polanyi"
+STRATEGIES = ["polanyi", "anti-polanyi"] 
 # --- End Configuration ---
 
 def discover_configs(config_dir: str) -> list[str]:
@@ -23,12 +25,12 @@ def discover_theorem_sets(math_dir_base: str) -> list[str]:
     return [d for d in os.listdir(math_dir_base)
             if os.path.isdir(os.path.join(math_dir_base, d))]
 
-def run_single_experiment(config_path: str, theorem_set: str, run_number: int, math_dir_base: str, base_log_dir: str):
+def run_single_experiment(config_path: str, theorem_set: str, strategy: str, run_number: int, math_dir_base: str, base_log_dir: str):
     """Loads config, sets up logging, and runs one simulation."""
     config_name = os.path.splitext(os.path.basename(config_path))[0]
 
     # Define the specific log directory and file for this run
-    run_log_dir = os.path.join(base_log_dir, config_name, theorem_set)
+    run_log_dir = os.path.join(base_log_dir, config_name, theorem_set, strategy)
     run_log_file = os.path.join(run_log_dir, f"run_{run_number}.log")
 
     # --- Skip Logic ---
@@ -43,7 +45,8 @@ def run_single_experiment(config_path: str, theorem_set: str, run_number: int, m
 
     # Load the base configuration
     config = load_config(config_path)
-
+    print(f"Config strategy: {config.strategy}")
+    config.strategy = strategy
     # Override relevant fields for this specific run
     config.lean_path = math_dir_base  # Point to the base math directory
     config.file_dir = os.path.join(theorem_set, ''.join(word.capitalize() for word in theorem_set.split('_')))    # Set the specific theorem directory (e.g., "Mock")
@@ -85,8 +88,8 @@ def main():
 
     config_files = discover_configs(args.config_dir)
     theorem_sets = discover_theorem_sets(args.math_dir)
-    print(f"Theorem sets: {theorem_sets}")
-
+    print(f"Theorem sets: {theorem_sets}") 
+    theorem_sets = ["mock", "bijective_comp"]
     if not config_files:
         print(f"[ExperimentRunner] No config files found in {args.config_dir}")
         return
@@ -96,21 +99,23 @@ def main():
 
     print(f"[ExperimentRunner] Found {len(config_files)} configs and {len(theorem_sets)} theorem sets.")
 
-    total_runs = len(config_files) * len(theorem_sets) * args.nsim
+    total_runs = len(config_files) * len(theorem_sets) * len(STRATEGIES) * args.nsim
     current_run = 0
 
     for config_path in config_files:
         for theorem_set in theorem_sets:
-            for run_number in range(1, args.nsim + 1):
-                current_run += 1
-                print(f"\n[ExperimentRunner] --- Progress: Run {current_run}/{total_runs} ---")
-                run_single_experiment(
-                    config_path=config_path,
-                    theorem_set=theorem_set,
-                    run_number=run_number,
-                    math_dir_base=args.math_dir,
-                    base_log_dir=args.log_dir
-                )
+            for strategy in STRATEGIES:
+                for run_number in range(1, args.nsim + 1):
+                    current_run += 1
+                    print(f"\n[ExperimentRunner] --- Progress: Run {current_run}/{total_runs} ---")
+                    run_single_experiment(
+                        config_path=config_path,
+                        theorem_set=theorem_set,
+                        strategy=strategy,
+                        run_number=run_number,
+                        math_dir_base=args.math_dir,
+                        base_log_dir=args.log_dir
+                    )
 
     end_time = time.time()
     print(f"\n[ExperimentRunner] All experiments finished in {end_time - start_time:.2f} seconds.")

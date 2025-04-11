@@ -15,35 +15,32 @@ from .event_bus import EventBus
 from .lean_interface import LeanInterface
 
 LEMMA_SELECTION_SYSTEM_PROMPT = """
-    You are a theorem-proving assistant who gives proofs for lemmas in Lean 4.
+    You are a theorem-proving assistant who gives proofs for lemmas in Lean 4. You job is to select the next lemma to work on.
 """
 
 PROOF_SYSTEM_PROMPT = """
     You are a theorem-proving assistant who gives proofs for lemmas in Lean 4.
-        
-    - You are an agent in a team of agents that are collectively proving a set of lemmas, so I will also show you a full event history of the team's progress so far including any failed proof attempts.
-    - These set of lemmas can be related, for example Lemma 1 might be used in the proof of Lemma 2. In this case you can simply import Lemma 1 even if it is not yet proven since we use Lean 4's "sorry" tactic to fill in the proof. This will allow you to build up a proof incrementally and not necessarily sequentially.
-    - Avoid lemmas that other agents are already working on.
-    - If the file is a definition, i.e. a `Prop`, then you can simply restate it since there is nothing to prove.
-    - You only return Lean 4 code which can be parsed by the Lean 4 parser, nothing else. Make sure to include all necessary imports. 
+
+    - If the file is a definition, i.e. a `Prop`, then you can simply restate as it is given in the file since there is nothing to prove. For example, `def myDefinition`
+    - You only return Lean 4 code which can be parsed by the Lean 4 parser, nothing else. Make sure to include all necessary imports.
+    - This set of lemmas can be related, for example Lemma 1 might be used in the proof of Lemma 2. In this case you can simply import Lemma 1 even if it is not yet proven since we use Lean 4's "sorry" tactic to fill in the proof. This will allow you to build up a proof incrementally and not necessarily sequentially.
 """
 
-# TODO: Consider adding reasoning (str)
+
 class LemmaSelection(BaseModel):
     lemma_id: str
 
-# TODO: Consider adding confidence (float) and reasoning (str)
 class ProofAttempt(BaseModel):
     proof: str
 
 
 class BaseAgent(ABC):
     """Base abstract class for all agents."""
-    def __init__(self, agent_id: str, event_bus: EventBus, lean_interface: LeanInterface):
+    def __init__(self, agent_id: str, event_bus: EventBus, lean_interface: LeanInterface, strategy: str):
         self.agent_id = agent_id
         self.event_bus = event_bus
         self.lean_interface = lean_interface
-        # self.available_lemmas = lean_interface.get_available_lemmas()
+        self.strategy = strategy
         self.proven_lemmas: Set[str] = set()
         self.current_lemma: Optional[str] = None
         
@@ -119,19 +116,6 @@ class BaseAgent(ABC):
             f"{self.lean_interface.get_file(lemma, 'stubs')}"
             for i, lemma in enumerate(available_lemmas)
         ])
-
-        # Format proven lemmas
-        proven_lemmas_str = self._format_proven_lemmas()
-
-        # Format current agent activities
-        current_activities_str = "\n".join([
-            f"- Agent {agent_id} is working on {lemma_id}" 
-            for agent_id, lemma_id in current_activities.items()
-            if agent_id != self.agent_id
-        ]) or "No other agents are currently working on lemmas."
-        
-        # Format event history in a readable way
-        history_str = self._format_event_history(event_history)
         
         prompt = f"""
         As a theorem-proving assistant, your task is to select the next lemma to work on. 
@@ -141,53 +125,75 @@ class BaseAgent(ABC):
         <Available Lemmas and their stubs>
         {available_lemmas_str}
         </Available Lemmas and their stubs>
-
-        <Proven Lemmas and their proofs>
-        {proven_lemmas_str if proven_lemmas_str else "No lemmas have been proven yet."}
-        </Proven Lemmas and their proofs>
-
-        <Current Agent Activities>
-        {current_activities_str}
-        </Current Agent Activities>
-
-        <Complete Event History>
-        {history_str if history_str else "No event history yet."}
-        </Complete Event History>
-        Based on this complete event history, please select the most strategic lemma for me (Agent {self.agent_id}) to work on next.
-        Consider factors like:
-        1. Avoid lemmas other agents are already working on
-        2. Consider lemmas that had failed attempts but might benefit from your approach
-        3. Look for lemmas that might build upon recently proven lemmas
-
-        Respond with only the lemma name."
         """
-        print(f"[agents] Lemma selection prompt:\n{prompt}")
+        if self.strategy == "polanyi":
+            # Format proven lemmas
+            proven_lemmas_str = self._format_proven_lemmas()
+            # Format current agent activities
+            current_activities_str = "\n".join([
+                f"- Agent {agent_id} is working on {lemma_id}" 
+                for agent_id, lemma_id in current_activities.items()
+                if agent_id != self.agent_id
+            ]) or "No other agents are currently working on lemmas."
+            
+            # Format event history in a readable way
+            history_str = self._format_event_history(event_history)
+
+            prompt += f"""
+            <Proven Lemmas and their proofs>
+            {proven_lemmas_str if proven_lemmas_str else "No lemmas have been proven yet."}
+            </Proven Lemmas and their proofs>
+
+            <Current Agent Activities>
+            {current_activities_str}
+            </Current Agent Activities>
+
+            <Complete Event History>
+            {history_str if history_str else "No event history yet."}
+            </Complete Event History>
+            Based on this complete event history, please select the most strategic lemma for me (Agent {self.agent_id}) to work on next.
+            Consider factors like:
+            1. Avoid lemmas other agents are already working on
+            2. Consider lemmas that had failed attempts but might benefit from your approach
+            3. Look for lemmas that might build upon recently proven lemmas
+
+            Respond with only the lemma name."
+            """
         return prompt
     
     def _create_proof_attempt_prompt(self, lemma_id: str, stub_file: str, event_history: Dict) -> str:
         """Create a detailed prompt for proof generation using event history."""
-        history_str = self._format_event_history(event_history)
-        proven_lemmas_str = self._format_proven_lemmas()
 
         prompt = f"""
-        Generate a proof for lemma {lemma_id} in Lean 4. Here is a stub file of the lemma, make sure to use it as a starting point:
+        Generate a proof for lemma {lemma_id} in Lean 4. If it is a definition, i.e. a `Prop`, then you can simply restate as it is given in the file since there is nothing to prove. For example, `def myDefinition`
+
+        Here is a stub file of the lemma, make sure to use it as a starting point:
 
         {stub_file}
-
-        Here is a complete event history of the team's progress so far which you can use to inform your proof:
-        1. Review any failed attempts to avoid repeating unsuccessful approaches
-        2. Analyze successful proofs of related lemmas for useful tactics
-        3. Consider the current state of proven lemmas that might be helpful
-
-        <Event History>
-        {history_str}
-        </Event History>
-
-        Here are the lemmas that have been proven so far:
-        <Proven Lemmas>
-        {proven_lemmas_str}
-        </Proven Lemmas>
         """
+        if self.strategy == "polanyi":
+            history_str = self._format_event_history(event_history)
+            proven_lemmas_str = self._format_proven_lemmas()
+            prompt += f"""
+            - You are an agent in a team of agents that are collectively proving a set of lemmas, so I will also show you a full event history of the team's progress so far including any failed proof attempts.
+            - Avoid lemmas that other agents are already working on.
+
+            Here is a complete event history of the team's progress so far which you can use to inform your proof:
+            1. Review any failed attempts to avoid repeating unsuccessful approaches
+            2. Analyze successful proofs of related lemmas for useful tactics
+            3. Consider the current state of proven lemmas that might be helpful
+
+
+            <Event History>
+            {history_str}
+            </Event History>
+
+            Here are the lemmas that have been proven so far:
+            <Proven Lemmas>
+            {proven_lemmas_str}
+            </Proven Lemmas>
+            """
+
         return prompt
 
     def on_lemma_proven(self, data: dict) -> None:
@@ -197,7 +203,6 @@ class BaseAgent(ABC):
         
         if lemma_id and agent_id != self.agent_id:
             print(f"[agents] Agent {self.agent_id} notified that {lemma_id} was proven by {agent_id}")
-            # self.proven_lemmas.add(lemma_id)
             
             # If this was our current lemma, pick a new one
             if self.current_lemma == lemma_id:
@@ -232,8 +237,6 @@ class BaseAgent(ABC):
             self.proven_lemmas.add(lemma_id)
         else:
             print(f"[agents] Agent {self.agent_id} got a proof, but {lemma_id} is already proven")
-        
-
     
     def publish_working_on(self, lemma_id: str) -> None:
         """Publish that this agent is working on a specific lemma."""
@@ -257,8 +260,8 @@ class BaseAgent(ABC):
 class OpenAIAgent(BaseAgent):
     """Agent that uses OpenAI models to generate proofs."""
     def __init__(self, agent_id: str, event_bus: EventBus, lean_interface: LeanInterface, 
-                 model: str = "gpt-4o", parameters: Dict[str, Any] = None):
-        super().__init__(agent_id, event_bus, lean_interface)
+                 model: str = "gpt-4o", parameters: Dict[str, Any] = None, strategy: str = None):
+        super().__init__(agent_id, event_bus, lean_interface, strategy)
         self.model = model
         self.parameters = parameters or {}
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -321,7 +324,6 @@ class OpenAIAgent(BaseAgent):
         
         # Get the complete event history
         event_history = self.event_bus.get_history()
-        print(f"[agents] OpenAI Agent {self.agent_id} event history:\n{json.dumps(event_history, indent=2)}")
         # Create a proof generation prompt
         stub_file = self.lean_interface.get_file(lemma_id, "stubs")
         prompt = self._create_proof_attempt_prompt(lemma_id, stub_file, event_history)
@@ -363,8 +365,8 @@ class OpenAIAgent(BaseAgent):
 class AnthropicAgent(BaseAgent):
     """Agent that uses Anthropic models to generate proofs."""
     def __init__(self, agent_id: str, event_bus: EventBus, lean_interface: LeanInterface, 
-                 model: str = "claude-3", parameters: Dict[str, Any] = None):
-        super().__init__(agent_id, event_bus, lean_interface)
+                 model: str = "claude-3", parameters: Dict[str, Any] = None, strategy: str = None):
+        super().__init__(agent_id, event_bus, lean_interface, strategy)
         self.model = model
         self.parameters = parameters or {}
         self.anthropic_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
@@ -409,16 +411,16 @@ class AnthropicAgent(BaseAgent):
                                     "type": "string",
                                     "description": "The ID of the lemma to work on"
                                 }
-                            }
-                        },
-                        "required": ["lemma_id"]
+                            },
+                            "required": ["lemma_id"]
+                        }
                     }
                 ],
                 tool_choice={"type": "tool", "name": "lemma_selection"},
                 system=LEMMA_SELECTION_SYSTEM_PROMPT,
                 messages=[
                     {"role": "user", "content": prompt}
-                    ],
+                ],
                 **self.parameters
             )
 
@@ -445,8 +447,7 @@ class AnthropicAgent(BaseAgent):
         
         # Get the complete event history
         event_history = self.event_bus.get_history()
-        print(f"[agents] Anthropic Agent {self.agent_id} event history:\n{json.dumps(event_history, indent=2)}")
-
+        
         # Create a proof generation prompt
         stub_file = self.lean_interface.get_file(lemma_id, "stubs")
         prompt = self._create_proof_attempt_prompt(lemma_id, stub_file, event_history)
@@ -462,7 +463,10 @@ class AnthropicAgent(BaseAgent):
                         "input_schema": {
                             "type": "object",
                             "properties": {
-                                "proof": {"type": "string", "description": "The proof to attempt which must be valid Lean 4 code"}
+                                "proof": {
+                                    "type": "string", 
+                                    "description": "The proof to attempt which must be valid Lean 4 code"
+                                }
                             },
                             "required": ["proof"]
                         }
@@ -494,15 +498,17 @@ class AnthropicAgent(BaseAgent):
             return False
 
 # Factory function to create the right type of agent based on provider
-def create_agent(config, event_bus, lean_interface):
+def create_agent(config, event_bus, lean_interface, strategy):
     """Create an agent based on the provided configuration."""
+    print(f"[agents] Creating agent: {config.id} with provider {config.provider} and strategy {strategy}")
     if config.provider.lower() == "openai":
         return OpenAIAgent(
             agent_id=config.id,
             event_bus=event_bus,
             lean_interface=lean_interface,
             model=config.model,
-            parameters=config.parameters
+            parameters=config.parameters,
+            strategy=strategy
         )
     elif config.provider.lower() == "anthropic":
         return AnthropicAgent(
@@ -510,7 +516,8 @@ def create_agent(config, event_bus, lean_interface):
             event_bus=event_bus,
             lean_interface=lean_interface,
             model=config.model,
-            parameters=config.parameters
+            parameters=config.parameters,
+            strategy=strategy
         )
     else:
         raise ValueError(f"Unknown provider: {config.provider}") 

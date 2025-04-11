@@ -17,6 +17,7 @@ class MainCoordinator:
         self.config = config
         self.event_bus = EventBus()
         self.lean_interface = LeanInterface(config.lean_path, config.file_dir)
+        self.strategy = config.strategy
         self.agents: List[BaseAgent] = []
         self.agent_threads: Dict[str, threading.Thread] = {}
         self.running = False
@@ -39,7 +40,8 @@ class MainCoordinator:
         """Initialize agents based on the configuration."""
         print(f"[MainCoordinator] Initializing {len(self.config.agent_configs)} agents")
         for agent_config in self.config.agent_configs:
-            agent = create_agent(agent_config, self.event_bus, self.lean_interface)
+            print(f"[MainCoordinator] Creating agent: {agent_config}")
+            agent = create_agent(agent_config, self.event_bus, self.lean_interface, self.strategy)
             self.agents.append(agent)
             print(f"[MainCoordinator] Created agent: {agent.agent_id}")
     
@@ -142,10 +144,11 @@ class MainCoordinator:
         
         # Print event bus statistics
         self._print_event_bus_statistics()
-
+        # Save event bus history to logs
+        self._log_event(self.event_bus.get_history(), "EventBusHistory")
         # Delete all proven lemmas
-        self.lean_interface.delete_proven_lemmas()
-    
+        self.lean_interface.delete_proven_lemmas()    
+                
     def _print_event_bus_statistics(self) -> None:
         """Print statistics from the event bus."""
         print("\n[MainCoordinator] --- Event Bus Statistics ---")
