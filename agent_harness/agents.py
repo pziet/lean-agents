@@ -277,7 +277,10 @@ class OpenAIAgent(BaseAgent):
             print(f"Error details: {error_str}")
             import sys
             sys.exit(1)  # Exit with non-zero code to indicate error
-            
+        elif "Connection error" in error_str:
+            print(f"[agents] Connection error in OpenAI {context}: {error}")
+            import sys
+            sys.exit(1)
         # Log the error but continue execution
         print(f"[agents] Error in OpenAI {context}: {error}")
         return error
