@@ -267,6 +267,21 @@ class OpenAIAgent(BaseAgent):
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         print(f"[agents] Created OpenAI agent {agent_id} using model {model}")
     
+    def _handle_openai_error(self, error, context="operation"):
+        """Handle OpenAI API errors, exiting on quota issues."""
+        error_str = str(error)
+        
+        # Check for quota error
+        if "429" in error_str and "insufficient_quota" in error_str:
+            print(f"CRITICAL ERROR: OpenAI API quota exceeded. Exiting program.")
+            print(f"Error details: {error_str}")
+            import sys
+            sys.exit(1)  # Exit with non-zero code to indicate error
+            
+        # Log the error but continue execution
+        print(f"[agents] Error in OpenAI {context}: {error}")
+        return error
+    
     def pick_lemma(self) -> Optional[str]:
         """Pick a lemma to work on by showing the full event bus history to the LLM."""
         # Get all available lemmas that aren't already proven
@@ -311,7 +326,7 @@ class OpenAIAgent(BaseAgent):
             return selected_lemma
             
         except Exception as e:
-            print(f"Error in OpenAI lemma selection: {e}")
+            self._handle_openai_error(e, "lemma selection")
             # Fallback to simple selection
             selected_lemma = random.choice(available_lemmas)
             self.current_lemma = selected_lemma
@@ -357,7 +372,7 @@ class OpenAIAgent(BaseAgent):
                 return False
                 
         except Exception as e:
-            print(f"[agents] Error in OpenAI proof attempt: {e}")
+            self._handle_openai_error(e, "proof attempt")
             self.publish_attempt_failed(lemma_id, str(e))
             return False
 
