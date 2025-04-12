@@ -1,0 +1,2 @@
+{"timestamp": 1744392589.348666, "event_type": "AgentWorking", "data": {"agent_id": "openai-agent-1", "lemma_id": "even_square_plus_even_square", "timestamp": 1744392589.3486266}}
+{"timestamp": 1744392590.5081277, "event_type": "AgentWorking", "data": {"agent_id": "openai-agent-2", "lemma_id": "even_square_plus_even_square", "timestamp": 1744392590.5080452}}
