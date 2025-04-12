@@ -1,0 +1,24 @@
+{
+  "num_agents": 2,
+  "max_runtime_seconds": 300,
+  "agents": [
+    {
+      "id": "openai-agent-1",
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "parameters": { 
+        "temperature": 0,
+        "max_tokens": 10000
+      }
+    },
+    {
+      "id": "openai-agent-2",
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "parameters": { 
+        "temperature": 0,
+        "max_tokens": 10000
+      }
+    }
+  ]
+}
