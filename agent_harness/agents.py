@@ -286,7 +286,7 @@ class OpenAIAgent(BaseAgent):
         return error
     
     def pick_lemma(self) -> Optional[str]:
-        """Pick a lemma to work on by showing the full event bus history to the LLM."""
+        """Pick a lemma to work on, show event history depending on strategy."""
         # Get all available lemmas that aren't already proven
         available_lemmas = self.lean_interface.get_available_lemmas() 
         print(f"[agents] OpenAI Agent {self.agent_id} available lemmas: {available_lemmas}")
@@ -337,7 +337,7 @@ class OpenAIAgent(BaseAgent):
             return selected_lemma
     
     def attempt_proof(self, lemma_id: str) -> bool:
-        """Generate and attempt a proof using OpenAI with event bus awareness."""
+        """Generate and attempt a proof using OpenAI with event history depending on strategy."""
         print(f"[agents] OpenAI Agent {self.agent_id} attempting to prove {lemma_id} with {self.model}")
         
         # Get the complete event history
@@ -391,7 +391,7 @@ class AnthropicAgent(BaseAgent):
         print(f"[agents] Created Anthropic agent {agent_id} using model {model}")
     
     def pick_lemma(self) -> Optional[str]:
-        """Pick a lemma to work on that hasn't been proven yet, with event bus awareness."""
+        """Pick a lemma to work on, show event history depending on strategy."""
         # Similar approach to OpenAIAgent, with potential for different strategies
         event_state = self.get_event_bus_state()
         current_activities = event_state["current_activities"]
@@ -460,7 +460,7 @@ class AnthropicAgent(BaseAgent):
             return selected_lemma
     
     def attempt_proof(self, lemma_id: str) -> bool:
-        """Generate and attempt a proof using Anthropic with event bus awareness."""
+        """Generate and attempt a proof using Anthropic with event history depending on strategy."""
         print(f"[agents] Anthropic Agent {self.agent_id} attempting to prove {lemma_id} with {self.model}")
         
         # Get the complete event history
