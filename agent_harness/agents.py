@@ -2,6 +2,8 @@
 All agent implementations in a single file with enhanced event bus visibility.
 """
 import os
+import re
+import requests
 import json
 from abc import ABC, abstractmethod
 from pydantic import BaseModel
@@ -33,6 +35,8 @@ class LemmaSelection(BaseModel):
 class ProofAttempt(BaseModel):
     proof: str
 
+class ExtractLeanProof(BaseModel):
+    proof: str
 
 class BaseAgent(ABC):
     """Base abstract class for all agents."""
@@ -193,7 +197,7 @@ class BaseAgent(ABC):
             {proven_lemmas_str}
             </Proven Lemmas>
             """
-
+        # print(f"[agents] Generated proof attempt prompt:\n{prompt}")
         return prompt
 
     def on_lemma_proven(self, data: dict) -> None:
@@ -256,17 +260,6 @@ class BaseAgent(ABC):
             "timestamp": time.time()
         })
 
-
-class OpenAIAgent(BaseAgent):
-    """Agent that uses OpenAI models to generate proofs."""
-    def __init__(self, agent_id: str, event_bus: EventBus, lean_interface: LeanInterface, 
-                 model: str = "gpt-4o", parameters: Dict[str, Any] = None, strategy: str = None):
-        super().__init__(agent_id, event_bus, lean_interface, strategy)
-        self.model = model
-        self.parameters = parameters or {}
-        self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        print(f"[agents] Created OpenAI agent {agent_id} using model {model}")
-    
     def _handle_openai_error(self, error, context="operation"):
         """Handle OpenAI API errors, exiting on quota issues."""
         error_str = str(error)
@@ -284,7 +277,18 @@ class OpenAIAgent(BaseAgent):
         # Log the error but continue execution
         print(f"[agents] Error in OpenAI {context}: {error}")
         return error
-    
+
+
+class OpenAIAgent(BaseAgent):
+    """Agent that uses OpenAI models to generate proofs."""
+    def __init__(self, agent_id: str, event_bus: EventBus, lean_interface: LeanInterface, 
+                 model: str = "gpt-4o", parameters: Dict[str, Any] = None, strategy: str = None):
+        super().__init__(agent_id, event_bus, lean_interface, strategy)
+        self.model = model
+        self.parameters = parameters or {}
+        self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        print(f"[agents] Created OpenAI agent {agent_id} using model {model}")
+        
     def pick_lemma(self) -> Optional[str]:
         """Pick a lemma to work on, show event history depending on strategy."""
         # Get all available lemmas that aren't already proven
@@ -361,7 +365,7 @@ class OpenAIAgent(BaseAgent):
             proof_attempt = response.choices[0].message.parsed.proof
             print(f"[agents] OpenAI Agent {self.agent_id} generated proof:\n {proof_attempt}")
             review_proof = self.lean_interface.check_proof(proof_attempt, lemma_id, self.agent_id)
-            print(f"[agents] OpenAI Agent {self.agent_id} reviewed proof:\n{json.dumps(review_proof, indent=2)}")
+            # print(f"[agents] OpenAI Agent {self.agent_id} reviewed proof:\n{json.dumps(review_proof, indent=2)}")
             if review_proof.get("success"):
                 self.publish_proof(lemma_id, proof_attempt)
                 return True
@@ -378,6 +382,151 @@ class OpenAIAgent(BaseAgent):
             self._handle_openai_error(e, "proof attempt")
             self.publish_attempt_failed(lemma_id, str(e))
             return False
+
+
+class KiminaAgent(BaseAgent):
+    """Agent that uses Kimina to generate proofs."""
+    def __init__(self, agent_id: str, event_bus: EventBus, lean_interface: LeanInterface, model: str = "AI-MO/Kimina-Prover-Preview-Distill-7B", parameters: Dict[str, Any] = None, strategy: str = None):
+        super().__init__(agent_id, event_bus, lean_interface, strategy)
+        self.model = model
+        self.parameters = parameters or {}
+        self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.API_URL = os.getenv("KIMINA_API_URL")
+        self.headers = {
+            "Accept": "application/json",
+            "Authorization": f"Bearer {os.getenv('KIMINA_API_KEY')}",
+            "Content-Type": "application/json"
+        }
+        print(f"[agents] Created Kimina agent {agent_id} using model {model}")
+
+    def _get_kimina_response(self, payload: dict) -> str:
+        """Get a response from Kimina."""
+        response = requests.post(self.API_URL, headers=self.headers, json=payload)
+        return response.json()
+    
+    def pick_lemma(self) -> Optional[str]:
+        """Pick a lemma to work on, show event history depending on strategy."""
+              # Get all available lemmas that aren't already proven
+        available_lemmas = self.lean_interface.get_available_lemmas() 
+        print(f"[agents] Kimina Agent {self.agent_id} available lemmas: {available_lemmas}")
+        if not available_lemmas:
+            return None
+        
+        # Get the complete event bus history
+        event_history = self.event_bus.get_history()
+        
+        # Get current activities of other agents
+        current_activities = self.event_bus.get_current_agent_activities()
+        
+        # Create a simple prompt with the raw event history
+        prompt = self._create_simple_lemma_selection_prompt(
+            available_lemmas, 
+            current_activities,
+            event_history
+        )
+       
+        try:
+            # Ask the LLM to select a lemma
+            response = self.openai_client.beta.chat.completions.parse(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": LEMMA_SELECTION_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt}
+                ],
+                response_format=LemmaSelection,
+                **self.parameters
+            )
+        
+            # Extract the lemma from the response
+            selected_lemma = response.choices[0].message.parsed.lemma_id
+            
+            self.current_lemma = selected_lemma
+            print(f"[agents] Kimina Agent {self.agent_id} picked lemma: {selected_lemma}")
+            
+            # Publish that we're working on this lemma
+            self.publish_working_on(selected_lemma)
+            return selected_lemma
+            
+        except Exception as e:
+            self._handle_openai_error(e, "lemma selection")
+            # Fallback to simple selection
+            selected_lemma = random.choice(available_lemmas)
+            self.current_lemma = selected_lemma
+            self.publish_working_on(selected_lemma)
+            return selected_lemma
+
+    def attempt_proof(self, lemma_id: str) -> bool:
+        """Generate and attempt a proof using Kimina."""
+        print(f"[agents] Kimina Agent {self.agent_id} attempting to prove {lemma_id} with {self.model}")
+        
+        # Get the complete event history
+        event_history = self.event_bus.get_history()
+        # Create a proof generation prompt
+        stub_file = self.lean_interface.get_file(lemma_id, "stubs")
+        prompt = self._create_proof_attempt_prompt(lemma_id, stub_file, event_history)
+        
+        try:
+            print(f"[agents] Kimina Agent {self.agent_id} about to call Kimina API")
+
+            if "Prop" in stub_file:
+                print(f"[agents] Kimina Agent {self.agent_id} lemma {lemma_id} is a definition, skipping proof attempt")
+                proof_attempt = stub_file
+            else:
+                # Ask the LLM to generate a proof
+                response = self._get_kimina_response({
+                    "inputs" : (
+                        f"- Take this Lean 4 stub with 'sorry' and give a proof in place of the 'sorry'. Note, you must not return a 'sorry' in your proof."
+                        f"- Only provide a proof for the given lemma"
+                        f"Ensure to indicate the proof with ```lean4 and ``` at the beginning and end of the proof."
+                        f"{prompt}"
+                    ),
+                    "parameters" : {
+                        "max_new_tokens" : 10000,
+                    }
+                })
+                print(f"[agents] Kimina Agent {self.agent_id} response:\n {response}")
+                # Extract the proof attempt from the response
+                proof_attempt = self._extract_and_fix_lean_proof(response[0]["generated_text"])
+            print(f"[agents] Kimina Agent {self.agent_id} generated proof:\n {proof_attempt}")
+            review_proof = self.lean_interface.check_proof(proof_attempt, lemma_id, self.agent_id)
+            print(f"[agents] Kimina Agent {self.agent_id} reviewed proof:\n{json.dumps(review_proof, indent=2)}")
+            if review_proof.get("success"):
+                self.publish_proof(lemma_id, proof_attempt)
+                return True
+            else:
+                # Add failed proof attempt to event bus
+                self.publish_attempt_failed(
+                    lemma_id, 
+                    proof_attempt,
+                    review_proof.get("output")
+                )
+                return False
+                
+        except Exception as e:
+            import sys
+            sys.exit(1)  # Exit with non-zero code to indicate error
+        
+    
+    def _extract_and_fix_lean_proof(self, text: str) -> str:
+        """Extract and fix a Lean proof from the response."""
+        try:
+            response = self.openai_client.beta.chat.completions.parse(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": (
+                        "You are a helpful assistant that looks at output from a language model and extracts the final proof that the language model wants to return." 
+                        "Make sure to include the imports and correct them if necessary. A common mistake is to put spaces instead of dots in the import statements. For example, instead of `import EvensquarePlusEven stubs isEven` it should be `import EvensquarePlusEven.stubs.isEven`."
+                        "You should return Lean 4 code, not Markdown code blocks, i.e. it should be able to be copied into a Lean 4 file and compiled."
+                    )},
+                    {"role": "user", "content": text}
+                ],
+                response_format=ExtractLeanProof,
+                **self.parameters
+            )
+            return response.choices[0].message.parsed.proof
+        except Exception as e:
+            print(f"[agents] Error in extracting and fixing Lean proof: {e}")
+            return None
 
 
 class AnthropicAgent(BaseAgent):
@@ -530,6 +679,15 @@ def create_agent(config, event_bus, lean_interface, strategy):
         )
     elif config.provider.lower() == "anthropic":
         return AnthropicAgent(
+            agent_id=config.id,
+            event_bus=event_bus,
+            lean_interface=lean_interface,
+            model=config.model,
+            parameters=config.parameters,
+            strategy=strategy
+        )
+    elif config.provider.lower() == "kimina":
+        return KiminaAgent(
             agent_id=config.id,
             event_bus=event_bus,
             lean_interface=lean_interface,
