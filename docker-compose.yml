@@ -1,4 +1,4 @@
-version: "3.9"
+version: "3.3"
 services:
   simulation:
     build: .  # Build the image from the Dockerfile in the current directory
@@ -22,4 +22,4 @@ services:
     volumes:
       - ./:/lean-agents
     # Run a script that iterates over each package, or call the inline command directly.
-    command: bash -c "for d in $(find . -maxdepth 1 -type d ! -name '.' ! -name 'README.md'); do echo Building $d; cd $d && lake build && cd ..; done"
+    command: bash -c "for d in $$(find . -maxdepth 1 -type d ! -name '.' ! -name 'README.md'); do echo Building $$d; cd $$d && lake build && cd ..; done"
