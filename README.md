@@ -38,3 +38,8 @@ lemma even_plus_even (n m : ℕ) (hn : isEven n) (hm : isEven m) : isEven (n + m
 ```
 
 Each of these would be selected by agent's and then assembled to prove the final theorem. 
+
+### Extensions
+
+- [ ] Docker
+- [ ] Test [Kimina-Prover](https://github.com/MoonshotAI/Kimina-Prover-Preview/tree/master) model.
