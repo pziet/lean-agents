@@ -1,5 +1,6 @@
 junk.md
 sandbox.ipynb
+docs/
 
 # env variables
 .env
@@ -18,3 +19,4 @@ __pycache__/
 
 # VSCode
 .vscode/docs/design_overview.md
+
