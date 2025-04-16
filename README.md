@@ -1,3 +1,4 @@
+**Animation**: [pziet.com/lean](https://pziet.com/lean) **Demo**: [video](https://youtu.be/0SbunyqpFvQ)
 # Polanyi’s Republic of Science in Lean: A Multi-Agent Proof Collaboration Harness
 
 This project implements a small multi-agent system where each “agent” works on sub-lemmas of a theorem in [Lean 4](https://lean-lang.org/). Inspired by Michael Polanyi’s notion of a spontaneous, decentralized [*Republic of Science*](https://www.polanyisociety.org/mp-repsc.htm), the agents collaborate implicitly: whenever one solves a lemma, it publishes the result so others can build on it.
