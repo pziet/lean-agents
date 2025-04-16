@@ -39,6 +39,37 @@ lemma even_plus_even (n m : ℕ) (hn : isEven n) (hm : isEven m) : isEven (n + m
 
 Each of these would be selected by agent's and then assembled to prove the final theorem. 
 
+### Repo overview
+
+```bash
+├── agent_harness
+│   ├── agents.py
+│   ├── config.py
+│   ├── event_bus.py
+│   ├── __init__.py
+│   ├── lean_interface.py
+│   ├── main_coordinator.py
+│   └── shell
+├── configs/
+├── data
+│   └── logs
+├── math/
+├── README.md
+├── requirements.txt
+└── run.py
+```
+
+- `agent_harness/`: Contains the Python code implementing the multi-agent harness.
+   - `agents.py`: Defines the structure and logic for individual agents.
+   - `config.py`: Loads and manages configuration parameters for the system.
+   - `event_bus.py`: Implements a system for agents to communicate events (e.g., lemma proved).
+   - `lean_interface.py`: Handles calls to the Lean prover to check proofs or get theorem states.
+   - `main_coordinator.py`: Manages the lifecycle of agents and the overall proof process.
+- `configs/`: Holds JSON configuration files, defining experiment parameters or agent settings.
+- `data`: Used for storing output data generated during runs, most notably logs.
+- `math/`: Contains the various Lean theorem packages being worked on, each likely structured with stubs, attempts, and proven lemmas.
+- `run.py`: The entry point script used to launch the agent harness simulation.
+
 ### Extensions
 
 - [ ] Docker
