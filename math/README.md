@@ -39,7 +39,7 @@ You can run individual `.lean` file with
 lake lean <file.lean>
 ```
 
-
+<!-- Example prompt for AI agent to help -->
 I am trying to test AI Agents ability to prove maths theorems, 
 - help me break down this theorem into sub-lemmas which are then put together to prove the final theorem, it may also require some definitions. 
 - for example: If `n`, `m` are even then `n^2 + m` is even would require: 
