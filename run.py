@@ -3,6 +3,7 @@ import os
 import glob
 import argparse
 import time
+from itertools import product
 
 from agent_harness.config import load_config
 from agent_harness.main_coordinator import MainCoordinator
@@ -11,9 +12,9 @@ from agent_harness.main_coordinator import MainCoordinator
 DEFAULT_CONFIG_DIR = "configs"
 DEFAULT_MATH_DIR_BASE = "/home/ztkpat001/repos/lean-agents/math" # Adjust if needed
 DEFAULT_LOG_DIR = "data/logs"
-DEFAULT_NSIM = 1
+DEFAULT_NSIM = 5
 # TODO: consider adding "partial-polanyi"
-STRATEGIES = ["polanyi", "anti-polanyi"] 
+STRATEGIES = ["polanyi", "anti-polanyi"]
 # --- End Configuration ---
 
 def discover_configs(config_dir: str) -> list[str]:
@@ -103,20 +104,18 @@ def main():
     total_runs = len(config_files) * len(theorem_sets) * len(STRATEGIES) * args.nsim
     current_run = 0
 
-    for config_path in config_files:
-        for theorem_set in theorem_sets:
-            for strategy in STRATEGIES:
-                for run_number in range(1, args.nsim + 1):
-                    current_run += 1
-                    print(f"\n[ExperimentRunner] --- Progress: Run {current_run}/{total_runs} ---")
-                    run_single_experiment(
-                        config_path=config_path,
-                        theorem_set=theorem_set,
-                        strategy=strategy,
-                        run_number=run_number,
-                        math_dir_base=args.math_dir,
-                        base_log_dir=args.log_dir
-                    )
+    for config_path, theorem_set, strategy in product(config_files, theorem_sets, STRATEGIES):
+        for run_number in range(1, args.nsim + 1):
+            current_run += 1
+            print(f"\n[ExperimentRunner] --- Progress: Run {current_run}/{total_runs} ---")
+            run_single_experiment(
+                config_path=config_path,
+                theorem_set=theorem_set,
+                strategy=strategy,
+                run_number=run_number,
+                math_dir_base=args.math_dir,
+                base_log_dir=args.log_dir
+            )
 
     end_time = time.time()
     print(f"\n[ExperimentRunner] All experiments finished in {end_time - start_time:.2f} seconds.")
