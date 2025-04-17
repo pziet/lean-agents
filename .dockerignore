@@ -1,0 +1,32 @@
+# Exclude local Python virtual environments
+env/
+venv/
+.venv/
+
+# Exclude generated data and logs
+data/
+
+# Exclude Python bytecode and caches
+__pycache__/
+*.py[cod]
+
+# Exclude Git metadata and ignore files
+.git
+.gitignore
+
+# Exclude IDE/editor settings
+.vscode/
+.idea/
+
+# Exclude Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Exclude miscellaneous files
+junk.md
+*.log
+
+# Exclude pytest cache directory
+.pytest_cache/
+
+# Exclude Lake build caches in math packages
+.lake/

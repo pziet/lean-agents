@@ -6,6 +6,48 @@ This project implements a small multi-agent system where each “agent” works 
 
 We test the strategies of sharing context and information, called `polanyi`, versus keeping agents siloed, called `anti-polanyi`.
 
+## Quick Start
+
+Prerequisites:
+- Docker (and optionally Docker Compose)
+
+Build the Docker image:
+```bash
+docker build -t lean-agents .
+```
+
+Run the simulation:
+```bash
+docker run --rm -v $(pwd)/data:/lean-agents/data lean-agents
+```
+
+Or with Docker Compose:
+```bash
+docker-compose up --build simulation
+```
+
+## Local Development (Without Docker)
+
+If you prefer to run locally, ensure you have Lean 4 (via elan) and Python >=3.10 installed:
+```bash
+# Install Lean 4 via elan
+curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | bash -s -- -y
+export PATH="$HOME/.elan/bin:$PATH"
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Pre-build Lean packages
+for pkg in math/*; do
+  if [ -f "$pkg/lakefile.toml" ]; then
+    cd "$pkg" && lake build && cd -;
+  fi
+done
+
+# Run the multi-agent simulation
+python run.py --config_dir configs --math_dir math --log_dir data/logs --nsim 5
+```
+
 ### Results
 
 Not suprisingly sharing information about other agent's attempts results in significant performance boost, however the agents do quite poorly considering how simple the theorems are. We used OpenAI's `gpt-4o-mini`.
@@ -74,5 +116,26 @@ Each of these would be selected by agent's and then assembled to prove the final
 
 ### Extensions
 
-- [ ] Docker
-- [ ] Test [Kimina-Prover](https://github.com/MoonshotAI/Kimina-Prover-Preview/tree/master) model.
+- [x] Docker
+- [ ] Test [Kimina-Prover](https://github.com/MoonshotAI/Kimina-Prover-Preview/tree/master) model. ([more](https://x.com/haimingw97/status/1912351985917128790?s=51) resources)
+ - [ ] Restructure `math/` Lean directories into a single Lean package
+ 
+## Docker Usage
+This project includes a Dockerfile for creating a development and runtime environment with Lean 4 and Python pre-configured.
+Build the Docker image:
+```bash
+docker build -t lean-agents .
+```
+Run the simulation container (logs will be stored in the host `data` directory):
+```bash
+docker run --rm -v $(pwd)/data:/lean-agents/data lean-agents
+```
+Alternatively, using Docker Compose (service `simulation`):
+```bash
+docker-compose up --build simulation
+```
+This setup will:
+- Install Lean 4 (via elan) and Lake during the image build,
+- Install Python dependencies,
+- Pre-build all Lean projects under `math/`,
+- Launch the multi-agent simulation (`run.py`).

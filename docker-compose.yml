@@ -1,25 +1,13 @@
 version: "3.3"
 services:
   simulation:
-    build: .  # Build the image from the Dockerfile in the current directory
+    # Build and run the multi-agent simulation
+    build: .
     image: lean-agents:latest
-    # Set the working directory in the container
     working_dir: /lean-agents
-    # Mount a volume for output data and logs (so they're saved on the host)
+    # Mount host data directory for logs and outputs
     volumes:
-      - ./:/lean-agents
       - ./data:/lean-agents/data
-    # (Optional) environment variables for configuration can be set here
-    # environment:
-    #   - SIMULATION_CONFIG=/app/config.yaml
-    #   - NUM_AGENTS=10
     command: python run.py
 
-  # Manually invoke with docker-compose run lean-check
-  lean-check:
-    image: lean-agents:latest
-    working_dir: /lean-agents/math
-    volumes:
-      - ./:/lean-agents
-    # Run a script that iterates over each package, or call the inline command directly.
-    command: bash -c "for d in $$(find . -maxdepth 1 -type d ! -name '.' ! -name 'README.md'); do echo Building $$d; cd $$d && lake build && cd ..; done"
+# Note: Lean projects are pre-built in the Dockerfile, so a separate lean-check service is no longer required.

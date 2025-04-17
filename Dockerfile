@@ -25,6 +25,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the project files into the container
 COPY . /lean-agents
 
+# Pre-build Lean projects to cache compiled artifacts
+RUN for pkg in math/*; do \
+    if [ -f "$pkg/lakefile.toml" ]; then \
+      echo "Building Lean project $pkg" && \
+      cd "$pkg" && lake build && cd /lean-agents; \
+    fi; \
+  done
+
 # The default command to run when the container starts:
 # here we run the Python multi-agent simulation.
 CMD ["python", "run.py"]

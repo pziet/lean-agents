@@ -18,5 +18,4 @@ __pycache__/
 .lake/
 
 # VSCode
-.vscode/docs/design_overview.md
-
+.vscode/

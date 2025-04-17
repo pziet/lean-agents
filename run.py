@@ -10,7 +10,7 @@ from agent_harness.main_coordinator import MainCoordinator
 
 # --- Configuration ---
 DEFAULT_CONFIG_DIR = "configs"
-DEFAULT_MATH_DIR_BASE = "/home/ztkpat001/repos/lean-agents/math" # Adjust if needed
+DEFAULT_MATH_DIR_BASE = "math"  # Base directory containing theorem sets (relative to project root)
 DEFAULT_LOG_DIR = "data/logs"
 DEFAULT_NSIM = 5
 # TODO: consider adding "partial-polanyi"
