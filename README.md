@@ -1,4 +1,4 @@
-**Animation**: [pziet.com/lean](https://pziet.com/lean) **Demo**: [video](https://youtu.be/0SbunyqpFvQ)
+**Animation**: [pziet.com/lean](https://pziet.com/lean) **Demo**: [video](https://youtu.be/0SbunyqpFvQ)<br>
 **Updates**: Added [tests](https://github.com/pziet/lean-agents/blob/main/tests/README.md), 
 # Polanyi’s Republic of Science in Lean: A Multi-Agent Proof Collaboration Harness
 
