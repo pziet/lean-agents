@@ -97,7 +97,7 @@ Each of these would be selected by agent's and then assembled to prove the final
 ├── configs/
 ├── data
 │   └── logs
-├── math/
+├── theorems/
 ├── README.md
 ├── requirements.txt
 └── run.py
@@ -111,14 +111,15 @@ Each of these would be selected by agent's and then assembled to prove the final
    - `main_coordinator.py`: Manages the lifecycle of agents and the overall proof process.
 - `configs/`: Holds JSON configuration files, defining experiment parameters or agent settings.
 - `data`: Used for storing output data generated during runs, most notably logs.
-- `math/`: Contains the various Lean theorem packages being worked on, each likely structured with stubs, attempts, and proven lemmas.
+- `theorems/`: Contains the various Lean theorem statements being worked on, each structured with stubs, attempts, and proven lemmas.
 - `run.py`: The entry point script used to launch the agent harness simulation.
 
 ### Extensions
 
 - [x] Docker
 - [ ] Test [Kimina-Prover](https://github.com/MoonshotAI/Kimina-Prover-Preview/tree/master) model. ([more](https://x.com/haimingw97/status/1912351985917128790?s=51) resources)
- - [ ] Restructure `math/` Lean directories into a single Lean package
+ - [X] Restructure `math/` Lean directories into a single Lean package
+ - [ ] Use `import logging`
  
 ## Docker Usage
 This project includes a Dockerfile for creating a development and runtime environment with Lean 4 and Python pre-configured.
