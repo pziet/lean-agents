@@ -10,7 +10,7 @@ from agent_harness.main_coordinator import MainCoordinator
 
 # --- Configuration ---
 DEFAULT_CONFIG_DIR = "configs"
-DEFAULT_MATH_DIR_BASE = "math"  # Base directory containing theorem sets (relative to project root)
+DEFAULT_MATH_DIR_BASE = "theorems/Theorems"  # Base directory containing theorem sets (relative to project root)
 DEFAULT_LOG_DIR = "data/logs"
 DEFAULT_NSIM = 5
 # TODO: consider adding "partial-polanyi"
@@ -46,11 +46,11 @@ def run_single_experiment(config_path: str, theorem_set: str, strategy: str, run
 
     # Load the base configuration
     config = load_config(config_path)
-    print(f"Config strategy: {config.strategy}")
     config.strategy = strategy
+    print(f"Config strategy: {config.strategy}")
     # Override relevant fields for this specific run
     config.lean_path = math_dir_base  # Point to the base math directory
-    config.file_dir = os.path.join(theorem_set, ''.join(word.capitalize() for word in theorem_set.split('_')))    # Set the specific theorem directory (e.g., "Mock")
+    config.file_dir = theorem_set
     print(f"Config file dir: {config.file_dir}")
     config.log_dir = run_log_dir     # Pass the specific directory for this run's logs
     # Pass the specific log *file* name (optional, depends on MainCoordinator modification)
@@ -75,7 +75,7 @@ def run_single_experiment(config_path: str, theorem_set: str, strategy: str, run
 def main():
     parser = argparse.ArgumentParser(description="Run agent harness experiments.")
     parser.add_argument("--config_dir", default=DEFAULT_CONFIG_DIR, help="Directory containing configuration files.")
-    parser.add_argument("--math_dir", default=DEFAULT_MATH_DIR_BASE, help="Base directory containing theorem sets (e.g., math/).")
+    parser.add_argument("--math_dir", default=DEFAULT_MATH_DIR_BASE, help="Base directory containing theorem sets (e.g., theorems/Theorems/).")
     parser.add_argument("--log_dir", default=DEFAULT_LOG_DIR, help="Base directory for saving logs.")
     parser.add_argument("--nsim", type=int, default=DEFAULT_NSIM, help="Number of simulations per config/theorem set.")
     args = parser.parse_args()

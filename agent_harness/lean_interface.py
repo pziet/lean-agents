@@ -67,14 +67,16 @@ class LeanInterface:
             
             # Get the path to the check_proof.sh script
             script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            package_root = self.lean_path.split("/")[0]
             check_script = os.path.join(script_dir, "agent_harness", "shell", "check_proof.sh")
             
             # Make sure the script is executable
             os.chmod(check_script, 0o755)
-            
             # Run the check_proof.sh script
+            package_root = self.lean_path.split("/")[0]
+            root_attempt_file = os.path.relpath(attempt_file, package_root)
             result = subprocess.run(
-                [check_script, os.path.join(self.lean_path, self.file_dir.split("/")[0]), attempt_file],
+                [check_script, package_root, root_attempt_file],
                 capture_output=True,
                 text=True
             )
