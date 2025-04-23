@@ -10,7 +10,9 @@ RUN apt-get update && apt-get install -y \
 
 # Install Lean 4 using the official Lean installer (elan).
 # This will install the latest stable Lean 4 and the `lake` build tool.
-RUN curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | bash -s -- -y
+RUN curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+    | bash -s -- -y
+
 # Add Lean (elan) to PATH for subsequent commands and container runtime
 ENV PATH="/root/.elan/bin:${PATH}"
 
@@ -19,19 +21,15 @@ WORKDIR /lean-agents
 
 # Copy Python dependency specification first (for caching)
 COPY requirements.txt ./
+
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the project files into the container
 COPY . /lean-agents
 
-# Pre-build Lean projects to cache compiled artifacts
-RUN for pkg in math/*; do \
-    if [ -f "$pkg/lakefile.toml" ]; then \
-      echo "Building Lean project $pkg" && \
-      cd "$pkg" && lake build && cd /lean-agents; \
-    fi; \
-  done
+# Pre-build your consolidated `theorems` Lean package
+RUN cd theorems && lake build
 
 # The default command to run when the container starts:
 # here we run the Python multi-agent simulation.
