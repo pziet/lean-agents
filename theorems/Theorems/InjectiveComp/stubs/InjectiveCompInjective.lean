@@ -1,6 +1,6 @@
 import Mathlib.Data.Nat.Basic
 import Mathlib.Tactic
-import Theorems.InjectiveComp.stubs.Injective
+import Theorems.Definitions.Injective
 import Theorems.InjectiveComp.stubs.InjectiveCancelOuter
 import Theorems.InjectiveComp.stubs.InjectiveCancelInner
 

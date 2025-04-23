@@ -1,6 +1,6 @@
 import Mathlib.Data.Nat.Basic
 import Mathlib.Tactic
-import Theorems.BijectiveComp.stubs.Injective
+import Theorems.Definitions.Injective
 
 variable {A B C : Type} {f : A → B} {g : B → C}
 

@@ -1,12 +1,12 @@
 import Mathlib.Data.Int.Basic
 import Mathlib.Tactic
-import Theorems.EvenOddSumParity.stubs.isEven
-import Theorems.EvenOddSumParity.stubs.isOdd
+import Theorems.Definitions.isEven
+import Theorems.Definitions.isOdd
 
 /--
 If a + b and a - b are even, then a and b are both even or both odd.
 -/
 lemma parity_equiv_of_even_sum_and_diff (a b : ℤ)
-    (h₁ : isEven (a + b)) (h₂ : isEven (a - b)) :
-    (isEven a ∧ isEven b) ∨ (isOdd a ∧ isOdd b) :=
+    (h₁ : isEvenInt (a + b)) (h₂ : isEvenInt (a - b)) :
+    (isEvenInt a ∧ isEvenInt b) ∨ (isOddInt a ∧ isOddInt b) :=
   sorry

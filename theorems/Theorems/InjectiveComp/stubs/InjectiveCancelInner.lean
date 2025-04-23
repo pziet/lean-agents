@@ -1,5 +1,5 @@
 import Mathlib.Tactic
-import Theorems.InjectiveComp.stubs.Injective
+import Theorems.Definitions.Injective
 
 variable {A B : Type} {f : A → B}
 

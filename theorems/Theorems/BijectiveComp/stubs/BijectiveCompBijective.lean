@@ -1,6 +1,6 @@
 import Mathlib.Data.Nat.Basic
 import Mathlib.Tactic
-import Theorems.BijectiveComp.stubs.Bijective
+import Theorems.Definitions.Bijective
 import Theorems.BijectiveComp.stubs.InjectiveCompInjective
 import Theorems.BijectiveComp.stubs.SurjectiveCompSurjective
 

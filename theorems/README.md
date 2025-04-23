@@ -8,13 +8,14 @@
 ## How to set up a new theorem
 Break down of how to manage lean
 To add a new theorem
-- In the `theorems/Theorems` directory create a directory `TheoremDir` and make sub-directories `stubs`, `proven`, and `attempts`.
+- In the `theorems/Theorems/` directory create a directory `TheoremDir` and make sub-directories `stubs`, `proven`, and `attempts`.
 - In the `stubs/` directory add the `.lean` theorem and lemma stub files with `sorry` placeholders.
+- Add any definitions in `theorems/Theorems/Definitions/`
 - In the root file `theorems/Theorems.lean` file add imports for all the stub files. For example in the `EvenOddSumParity.lean` file we have:
 ```lean
 -- Even odd sum parity
-import Theorems.EvenOddSumParity.stubs.isEven
-import Theorems.EvenOddSumParity.stubs.isOdd
+import Theorems.EvenOddSumParity.Definitions.isEven
+import Theorems.EvenOddSumParity.Definitions.isOdd
 import Theorems.EvenOddSumParity.stubs.ParityEquivOfEvenSumAndDiff
 ```
 - See the `EvenOddSumParity` package for an example structure.

@@ -1,5 +1,5 @@
 import Mathlib.Tactic
-import Theorems.EvensquarePlusEvensquare.stubs.isEven
+import Theorems.Definitions.isEven
 import Theorems.EvensquarePlusEvensquare.stubs.EvenSquare
 import Theorems.EvensquarePlusEvensquare.stubs.EvenPlusEven
 

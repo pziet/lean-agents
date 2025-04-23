@@ -1,5 +1,5 @@
 import Mathlib.Tactic
-import Theorems.EvensquarePlusEven.stubs.isEven
+import Theorems.Definitions.isEven
 import Theorems.EvensquarePlusEven.stubs.EvenSquare
 import Theorems.EvensquarePlusEven.stubs.EvenPlusEven
 -- Prove that is n, m are even then n^2 + m is even
