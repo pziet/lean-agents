@@ -12,6 +12,10 @@ from .lean_interface import LeanInterface
 from .agents import BaseAgent, create_agent
 from .config import RunConfig
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class MainCoordinator:
     def __init__(self, config: RunConfig):
         self.config = config
@@ -38,12 +42,12 @@ class MainCoordinator:
     
     def _initialize_agents(self) -> None:
         """Initialize agents based on the configuration."""
-        print(f"[MainCoordinator] Initializing {len(self.config.agent_configs)} agents")
+        logger.info("Initializing %s agents", len(self.config.agent_configs))
         for agent_config in self.config.agent_configs:
-            print(f"[MainCoordinator] Creating agent: {agent_config}")
+            logger.info("Creating agent: %s", agent_config)
             agent = create_agent(agent_config, self.event_bus, self.lean_interface, self.strategy)
             self.agents.append(agent)
-            print(f"[MainCoordinator] Created agent: {agent.agent_id}")
+            logger.info("Created agent: %s", agent.agent_id)
     
     def _log_event(self, data: Dict, event_type: str = None) -> None:
         """Log an event to the log file.
@@ -53,7 +57,7 @@ class MainCoordinator:
             event_type: The type of event being logged
         """
         # Use the provided event_type rather than thread name
-        print(f"[MainCoordinator] Event: {event_type} - {data}")
+        logger.info("Event: %s - %s", event_type, data)
         
         log_entry = {
             "timestamp": time.time(),
@@ -66,37 +70,37 @@ class MainCoordinator:
     
     def _agent_worker(self, agent: BaseAgent) -> None:
         """Worker function for each agent thread."""
-        print(f"[Agent-{agent.agent_id}] Worker thread started")
+        logger.info("Agent-%s worker thread started", agent.agent_id)
         while self.running:
             # Try to pick a lemma if the agent doesn't have one
-            print(f"[Agent-{agent.agent_id}] Attempting to pick a lemma")
+            logger.info("Agent-%s attempting to pick a lemma", agent.agent_id)
             lemma = agent.pick_lemma()
             if lemma:
-                print(f"[Agent-{agent.agent_id}] Picked lemma: {lemma}")
+                logger.info("Agent-%s picked lemma: %s", agent.agent_id, lemma)
                 # Attempt to prove it
-                print(f"[Agent-{agent.agent_id}] Attempting to prove lemma")
+                logger.info("Agent-%s attempting to prove lemma", agent.agent_id)
                 success = agent.attempt_proof(lemma)
                 if success:
-                    print(f"[Agent-{agent.agent_id}] Successfully proved lemma: {lemma}")
+                    logger.info("Agent-%s successfully proved lemma: %s", agent.agent_id, lemma)
                 else:
-                    print(f"[Agent-{agent.agent_id}] Failed to prove lemma: {lemma}")
+                    logger.info("Agent-%s failed to prove lemma: %s", agent.agent_id, lemma)
                     # If failed, sleep briefly before trying again or picking a new lemma
-                    print(f"[Agent-{agent.agent_id}] Sleeping for 1 second before next attempt")
+                    logger.info("Agent-%s sleeping for 1 second before next attempt", agent.agent_id)
                     time.sleep(1)
             else:
                 # No lemmas available
                 print("[MainCoordinator] All lemmas have been proven. Stopping simulation.")
                 self.running = False
-        print(f"[Agent-{agent.agent_id}] Worker thread terminated")
+        logger.info("Agent-%s worker thread terminated", agent.agent_id)
     
     def start(self) -> None:
         """Start all agents working on proofs."""
-        print(f"[MainCoordinator] Starting {len(self.agents)} agents")
+        logger.info("Starting %s agents", len(self.agents))
         self.running = True
         
         # Create and start a thread for each agent
         for agent in self.agents:
-            print(f"[MainCoordinator] Creating thread for agent: {agent.agent_id}")
+            logger.info("Creating thread for agent: %s", agent.agent_id)
             thread = threading.Thread(
                 target=self._agent_worker,
                 args=(agent,),
@@ -104,43 +108,43 @@ class MainCoordinator:
             )
             self.agent_threads[agent.agent_id] = thread
             thread.start()
-            print(f"[MainCoordinator] Started agent: {agent.agent_id}")
+            logger.info("Started agent: %s", agent.agent_id)
     
     def stop(self) -> None:
         """Stop all agents."""
-        print(f"[MainCoordinator] Stopping all agents")
+        logger.info("Stopping all agents")
         self.running = False
         
         # Wait for all threads to finish
         for agent_id, thread in self.agent_threads.items():
-            print(f"[MainCoordinator] Waiting for agent {agent_id} to terminate")
+            logger.info("Waiting for agent %s to terminate", agent_id)
             thread.join()
-            print(f"[MainCoordinator] Stopped agent: {agent_id}")
+            logger.info("Stopped agent: %s", agent_id)
     
     def run_for_duration(self) -> None:
         """Run the system for the configured duration then stop."""
         duration = self.config.max_runtime_seconds
-        print(f"[MainCoordinator] Running for {duration} seconds...")
+        logger.info("Running for %s seconds...", duration)
         self.start()
         end_time = time.time() + duration
-        print(f"[MainCoordinator] All agents started, sleeping for {duration} seconds")
+        logger.info("All agents started, sleeping for %s seconds", duration)
 
         while time.time() < end_time and self.running:
             #  Do nothing, just wait for the duration to pass
             time.sleep(1)
 
-        print(f"[MainCoordinator] Simulation complete, stopping all agents")
+        logger.info("Simulation complete, stopping all agents")
         self.stop()
         
         # Print summary
-        print("\n[MainCoordinator] --- Summary ---")
+        logger.info("\n--- Summary ---")
         all_proven = set()
         for agent in self.agents:
-            print(f"[MainCoordinator] Agent {agent.agent_id} proved: {agent.proven_lemmas}")
+            logger.info("Agent %s proved: %s", agent.agent_id, agent.proven_lemmas)
             all_proven.update(agent.proven_lemmas)
         
-        print(f"\n[MainCoordinator] Total lemmas proven: {len(all_proven)}")
-        print(f"[MainCoordinator] Proven lemmas: {all_proven}")
+        logger.info("Total lemmas proven: %s", len(all_proven))
+        logger.info("Proven lemmas: %s", all_proven)
         
         # Print event bus statistics
         self._print_event_bus_statistics()
@@ -151,19 +155,19 @@ class MainCoordinator:
                 
     def _print_event_bus_statistics(self) -> None:
         """Print statistics from the event bus."""
-        print("\n[MainCoordinator] --- Event Bus Statistics ---")
+        logger.info("\n--- Event Bus Statistics ---")
         
         # Count events by type
         history = self.event_bus.get_history()
         for event_type, events in history.items():
-            print(f"[MainCoordinator] {event_type}: {len(events)} events")
+            logger.info("%s: %s events", event_type, len(events))
         
         # Print collaboration metrics
         lemma_proven_events = history.get("LemmaProven", [])
         lemma_attempt_failed_events = history.get("LemmaAttemptFailed", [])
         
-        print(f"\n[MainCoordinator] Total successful proofs: {len(lemma_proven_events)}")
-        print(f"[MainCoordinator] Total failed attempts: {len(lemma_attempt_failed_events)}")
+        logger.info("Total successful proofs: %s", len(lemma_proven_events))
+        logger.info("Total failed attempts: %s", len(lemma_attempt_failed_events))
         
         # Calculate average attempts before success
         lemma_attempts = {}
@@ -176,6 +180,6 @@ class MainCoordinator:
         proven_lemmas = [event["data"]["lemma_id"] for event in lemma_proven_events]
         if proven_lemmas:
             avg_attempts = sum(lemma_attempts.get(lemma_id, 0) for lemma_id in proven_lemmas) / len(proven_lemmas)
-            print(f"[MainCoordinator] Average failed attempts before success: {avg_attempts:.2f}")
+            logger.info("Average failed attempts before success: %.2f", avg_attempts)
         else:
-            print(f"[MainCoordinator] No lemmas were successfully proven")
+            logger.info("No lemmas were successfully proven")

@@ -15,6 +15,10 @@ import openai
 from .event_bus import EventBus
 from .lean_interface import LeanInterface
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 LEMMA_SELECTION_SYSTEM_PROMPT = """
     You are a theorem-proving assistant who gives proofs for lemmas in Lean 4. You job is to select the next lemma to work on.
 """
@@ -196,7 +200,7 @@ class BaseAgent(ABC):
             {proven_lemmas_str}
             </Proven Lemmas>
             """
-        # print(f"[agents] Generated proof attempt prompt:\n{prompt}")
+        logger.info("Generated proof attempt prompt:\n%s", prompt)
         return prompt
 
     def on_lemma_proven(self, data: dict) -> None:
@@ -205,7 +209,7 @@ class BaseAgent(ABC):
         agent_id = data.get("agent_id")
         
         if lemma_id and agent_id != self.agent_id:
-            print(f"[agents] Agent {self.agent_id} notified that {lemma_id} was proven by {agent_id}")
+            logger.info("Agent %s notified that %s was proven by %s", self.agent_id, lemma_id, agent_id)
             
             # If this was our current lemma, pick a new one
             if self.current_lemma == lemma_id:
@@ -227,7 +231,7 @@ class BaseAgent(ABC):
         # Save the proof to the proven directory
         filepath = self.lean_interface.save_proven_lemma(lemma_id, proof)
         if filepath:
-            print(f"[agents] Agent {self.agent_id} proved lemma: {lemma_id}")
+            logger.info("Agent %s proved lemma: %s", self.agent_id, lemma_id)
             # Notify other agents
             self.event_bus.publish("LemmaProven", {
                 "lemma_id": lemma_id,
@@ -239,7 +243,7 @@ class BaseAgent(ABC):
             # Update our own record
             self.proven_lemmas.add(lemma_id)
         else:
-            print(f"[agents] Agent {self.agent_id} got a proof, but {lemma_id} is already proven")
+            logger.info("Agent %s got a proof, but %s is already proven", self.agent_id, lemma_id)
     
     def publish_working_on(self, lemma_id: str) -> None:
         """Publish that this agent is working on a specific lemma."""
@@ -265,16 +269,16 @@ class BaseAgent(ABC):
         
         # Check for quota error
         if "429" in error_str and "insufficient_quota" in error_str:
-            print(f"CRITICAL ERROR: OpenAI API quota exceeded. Exiting program.")
-            print(f"Error details: {error_str}")
+            logger.error("CRITICAL ERROR: OpenAI API quota exceeded. Exiting program.")
+            logger.error("Error details: %s", error_str)
             import sys
             sys.exit(1)  # Exit with non-zero code to indicate error
         elif "Connection error" in error_str:
-            print(f"[agents] Connection error in OpenAI {context}: {error}")
+            logger.error("Connection error in OpenAI %s: %s", context, error)
             import sys
             sys.exit(1)
         # Log the error but continue execution
-        print(f"[agents] Error in OpenAI {context}: {error}")
+        logger.error("Error in OpenAI %s: %s", context, error)
         return error
 
 
@@ -286,13 +290,13 @@ class OpenAIAgent(BaseAgent):
         self.model = model
         self.parameters = parameters or {}
         self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        print(f"[agents] Created OpenAI agent {agent_id} using model {model}")
+        logger.info("Created OpenAI agent %s using model %s", agent_id, model)
         
     def pick_lemma(self) -> Optional[str]:
         """Pick a lemma to work on, show event history depending on strategy."""
         # Get all available lemmas that aren't already proven
         available_lemmas = self.lean_interface.get_available_lemmas() 
-        print(f"[agents] OpenAI Agent {self.agent_id} available lemmas: {available_lemmas}")
+        logger.info("OpenAI Agent %s available lemmas: %s", self.agent_id, available_lemmas)
         if not available_lemmas:
             return None
         
@@ -325,7 +329,7 @@ class OpenAIAgent(BaseAgent):
             selected_lemma = response.choices[0].message.parsed.lemma_id
             
             self.current_lemma = selected_lemma
-            print(f"[agents] OpenAI Agent {self.agent_id} picked lemma: {selected_lemma}")
+            logger.info("OpenAI Agent %s picked lemma: %s", self.agent_id, selected_lemma)
             
             # Publish that we're working on this lemma
             self.publish_working_on(selected_lemma)
@@ -341,7 +345,7 @@ class OpenAIAgent(BaseAgent):
     
     def attempt_proof(self, lemma_id: str) -> bool:
         """Generate and attempt a proof using OpenAI with event history depending on strategy."""
-        print(f"[agents] OpenAI Agent {self.agent_id} attempting to prove {lemma_id} with {self.model}")
+        logger.info("OpenAI Agent %s attempting to prove %s with %s", self.agent_id, lemma_id, self.model)
         
         # Get the complete event history
         event_history = self.event_bus.get_history()
@@ -362,9 +366,9 @@ class OpenAIAgent(BaseAgent):
             )
             # Extract the proof attempt from the response
             proof_attempt = response.choices[0].message.parsed.proof
-            print(f"[agents] OpenAI Agent {self.agent_id} generated proof:\n {proof_attempt}")
+            logger.info("OpenAI Agent %s generated proof:\n %s", self.agent_id, proof_attempt)
             review_proof = self.lean_interface.check_proof(proof_attempt, lemma_id, self.agent_id)
-            # print(f"[agents] OpenAI Agent {self.agent_id} reviewed proof:\n{json.dumps(review_proof, indent=2)}")
+            logger.info("OpenAI Agent %s reviewed proof:\n%s", self.agent_id, json.dumps(review_proof, indent=2))
             if review_proof.get("success"):
                 self.publish_proof(lemma_id, proof_attempt)
                 return True
@@ -396,7 +400,7 @@ class KiminaAgent(BaseAgent):
             "Authorization": f"Bearer {os.getenv('KIMINA_API_KEY')}",
             "Content-Type": "application/json"
         }
-        print(f"[agents] Created Kimina agent {agent_id} using model {model}")
+        logger.info("Created Kimina agent %s using model %s", agent_id, model)
 
     def _get_kimina_response(self, payload: dict) -> str:
         """Get a response from Kimina."""
@@ -407,7 +411,7 @@ class KiminaAgent(BaseAgent):
         """Pick a lemma to work on, show event history depending on strategy."""
               # Get all available lemmas that aren't already proven
         available_lemmas = self.lean_interface.get_available_lemmas() 
-        print(f"[agents] Kimina Agent {self.agent_id} available lemmas: {available_lemmas}")
+        logger.info("Kimina Agent %s available lemmas: %s", self.agent_id, available_lemmas)
         if not available_lemmas:
             return None
         
@@ -440,7 +444,7 @@ class KiminaAgent(BaseAgent):
             selected_lemma = response.choices[0].message.parsed.lemma_id
             
             self.current_lemma = selected_lemma
-            print(f"[agents] Kimina Agent {self.agent_id} picked lemma: {selected_lemma}")
+            logger.info("Kimina Agent %s picked lemma: %s", self.agent_id, selected_lemma)
             
             # Publish that we're working on this lemma
             self.publish_working_on(selected_lemma)
@@ -456,7 +460,7 @@ class KiminaAgent(BaseAgent):
 
     def attempt_proof(self, lemma_id: str) -> bool:
         """Generate and attempt a proof using Kimina."""
-        print(f"[agents] Kimina Agent {self.agent_id} attempting to prove {lemma_id} with {self.model}")
+        logger.info("Kimina Agent %s attempting to prove %s with %s", self.agent_id, lemma_id, self.model)
         
         # Get the complete event history
         event_history = self.event_bus.get_history()
@@ -465,10 +469,10 @@ class KiminaAgent(BaseAgent):
         prompt = self._create_proof_attempt_prompt(lemma_id, stub_file, event_history)
         
         try:
-            print(f"[agents] Kimina Agent {self.agent_id} about to call Kimina API")
+            logger.info("Kimina Agent %s about to call Kimina API", self.agent_id)
 
             if "Prop" in stub_file:
-                print(f"[agents] Kimina Agent {self.agent_id} lemma {lemma_id} is a definition, skipping proof attempt")
+                logger.info("Kimina Agent %s lemma %s is a definition, skipping proof attempt", self.agent_id, lemma_id)
                 proof_attempt = stub_file
             else:
                 # Ask the LLM to generate a proof
@@ -483,12 +487,12 @@ class KiminaAgent(BaseAgent):
                         "max_new_tokens" : 10000,
                     }
                 })
-                print(f"[agents] Kimina Agent {self.agent_id} response:\n {response}")
+                logger.info("Kimina Agent %s response:\n %s", self.agent_id, response)
                 # Extract the proof attempt from the response
                 proof_attempt = self._extract_and_fix_lean_proof(response[0]["generated_text"])
-            print(f"[agents] Kimina Agent {self.agent_id} generated proof:\n {proof_attempt}")
+            logger.info("Kimina Agent %s generated proof:\n %s", self.agent_id, proof_attempt)
             review_proof = self.lean_interface.check_proof(proof_attempt, lemma_id, self.agent_id)
-            print(f"[agents] Kimina Agent {self.agent_id} reviewed proof:\n{json.dumps(review_proof, indent=2)}")
+            logger.info("Kimina Agent %s reviewed proof:\n%s", self.agent_id, json.dumps(review_proof, indent=2))
             if review_proof.get("success"):
                 self.publish_proof(lemma_id, proof_attempt)
                 return True
@@ -524,7 +528,7 @@ class KiminaAgent(BaseAgent):
             )
             return response.choices[0].message.parsed.proof
         except Exception as e:
-            print(f"[agents] Error in extracting and fixing Lean proof: {e}")
+            logger.error("Error in extracting and fixing Lean proof: %s", e)
             return None
 
 
@@ -532,7 +536,7 @@ class KiminaAgent(BaseAgent):
 # Factory function to create the right type of agent based on provider
 def create_agent(config, event_bus, lean_interface, strategy):
     """Create an agent based on the provided configuration."""
-    print(f"[agents] Creating agent: {config.id} with provider {config.provider} and strategy {strategy}")
+    logger.info("Creating agent: %s with provider %s and strategy %s", config.id, config.provider, strategy)
     if config.provider.lower() == "openai":
         return OpenAIAgent(
             agent_id=config.id,
@@ -552,4 +556,5 @@ def create_agent(config, event_bus, lean_interface, strategy):
             strategy=strategy
         )
     else:
+        logger.error("Unknown provider: %s", config.provider)
         raise ValueError(f"Unknown provider: {config.provider}") 

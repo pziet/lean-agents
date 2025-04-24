@@ -7,6 +7,9 @@ import time
 import subprocess
 from typing import Tuple, Optional, List
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 class LeanInterface:
     def __init__(self, lean_path: str, file_dir: str):
@@ -43,7 +46,7 @@ class LeanInterface:
         try:
             os.remove(attempt_file)
         except OSError as e:
-            print(f"[lean_interface] Error deleting attempt file {attempt_file}: {e}")
+            logger.error("Error deleting attempt file %s: %s", attempt_file, e)
     
     def check_proof(self, proof_script: str, lemma_id: str, agent_id: str) -> Tuple[bool, Optional[str]]:
         """
@@ -111,11 +114,11 @@ class LeanInterface:
         filename = f"{lemma_id}.lean"
         filepath = os.path.join(self.proven_dir, filename)
         if os.path.exists(filepath):
-            print(f"[lean_interface] Proof for {lemma_id} already exists at {filepath}")
+            logger.info("Proof for %s already exists at %s", lemma_id, filepath)
             return None
         with open(filepath, 'w') as f:
             f.write(proof_script)
-        print(f"[lean_interface] Saved proof for {lemma_id} to {filepath}")
+        logger.info("Saved proof for %s to %s", lemma_id, filepath)
         return filepath
     
     def get_available_lemmas(self) -> List[str]:
