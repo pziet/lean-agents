@@ -1,5 +1,5 @@
 **Animation**: [pziet.com/lean](https://pziet.com/lean) **Demo**: [video](https://youtu.be/0SbunyqpFvQ)<br>
-**Updates**: Added [tests](https://github.com/pziet/lean-agents/blob/main/tests/README.md), Docker
+**Updates**: Added [tests](https://github.com/pziet/lean-agents/blob/main/tests/README.md), Docker, and logging
 # Polanyi’s Republic of Science in Lean: A Multi-Agent Proof Collaboration Harness
 
 This project implements a small multi-agent system where each “agent” works on sub-lemmas of a theorem in [Lean 4](https://lean-lang.org/). Inspired by Michael Polanyi’s notion of a spontaneous, decentralized [*Republic of Science*](https://www.polanyisociety.org/mp-repsc.htm), the agents collaborate implicitly: whenever one solves a lemma, it publishes the result so others can build on it.
@@ -9,22 +9,33 @@ We test the strategies of sharing context and information, called `polanyi`, ver
 ## Quick Start
 
 Prerequisites:
-- Docker (and optionally Docker Compose)
+- Docker (20.10+)
+- Docker Compose plugin (optional, but recommended)
+- Copy and configure environment variables:
+  ```bash
+  cp .env.example .env
+  # Edit .env to add your OPENAI_API_KEY and optional LOG_LEVEL
+  ```
 
-Build the Docker image:
-```bash
-docker build -t lean-agents .
-```
-
-Run the simulation:
-```bash
-docker run --rm -v $(pwd)/data:/lean-agents/data lean-agents
-```
-
-Or with Docker Compose:
-```bash
-docker-compose up --build simulation
-```
+1. **Build image** (only when dependencies change):
+   ```bash
+   docker compose build simulation
+   ```
+2. **Launch simulation** with hot‑reload and logging:
+   ```bash
+   docker compose up simulation
+   ```
+   - Automatically restarts `run.py` on edits to `*.py`, `*.json`, `*.yaml`, `*.toml` files.
+   - Stops when all simulations complete (no restart on normal exit).
+   - Logs to console and `data/logs/app.log` (rotated daily).
+3. **View logs** in another terminal:
+   ```bash
+   tail -f data/logs/app.log
+   ```
+4. **Shutdown** the service:
+   ```bash
+   docker compose down
+   ```
 
 ## Local Development (Without Docker)
 
@@ -119,24 +130,4 @@ Each of these would be selected by agent's and then assembled to prove the final
 - [x] Docker
 - [ ] Test [Kimina-Prover](https://github.com/MoonshotAI/Kimina-Prover-Preview/tree/master) model. ([more](https://x.com/haimingw97/status/1912351985917128790?s=51) resources)
  - [X] Restructure `math/` Lean directories into a single Lean package
- - [ ] Use `import logging`
- 
-## Docker Usage
-This project includes a Dockerfile for creating a development and runtime environment with Lean 4 and Python pre-configured.
-Build the Docker image:
-```bash
-docker build -t lean-agents .
-```
-Run the simulation container (logs will be stored in the host `data` directory):
-```bash
-docker run --rm -v $(pwd)/data:/lean-agents/data lean-agents
-```
-Alternatively, using Docker Compose (service `simulation`):
-```bash
-docker-compose up --build simulation
-```
-This setup will:
-- Install Lean 4 (via elan) and Lake during the image build,
-- Install Python dependencies,
-- Pre-build all Lean projects under `math/`,
-- Launch the multi-agent simulation (`run.py`).
+ - [X] Use `import logging`
