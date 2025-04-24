@@ -12,6 +12,8 @@ services:
       - ./:/lean-agents
       # 2) bind-mount data/logs so logs persist
       - ./data:/lean-agents/data
+    env_file:
+      - .env
     # 3) auto-restart on any .py/.json/.yaml/.toml change
     command: >
       watchmedo auto-restart
