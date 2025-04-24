@@ -34,7 +34,7 @@ def discover_configs(config_dir: str) -> list[str]:
 def discover_theorem_sets(math_dir_base: str) -> list[str]:
     """Find theorem set directories (e.g., 'Mock') within the base math directory."""
     return [d for d in os.listdir(math_dir_base)
-            if os.path.isdir(os.path.join(math_dir_base, d))]
+            if os.path.isdir(os.path.join(math_dir_base, d)) and d != 'Definitions']
 
 def run_single_experiment(config_path: str, theorem_set: str, strategy: str, run_number: int, math_dir_base: str, base_log_dir: str):
     """Loads config, sets up logging, and runs one simulation."""
