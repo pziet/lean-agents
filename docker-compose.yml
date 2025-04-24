@@ -1,13 +1,21 @@
-version: "3.3"
 services:
   simulation:
-    # Build and run the multi-agent simulation
-    build: .
-    image: lean-agents:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # ← tell BuildKit to use the host's network stack for RUN steps
+      network: host
+    image: lean-agents:dev
     working_dir: /lean-agents
-    # Mount host data directory for logs and outputs
     volumes:
+      # 1) bind-mount your code (hot-reload)
+      - ./:/lean-agents
+      # 2) bind-mount data/logs so logs persist
       - ./data:/lean-agents/data
-    command: python run.py
-
-# Note: Lean projects are pre-built in the Dockerfile, so a separate lean-check service is no longer required.
+    # 3) auto-restart on any .py/.json/.yaml/.toml change
+    command: >
+      watchmedo auto-restart
+        --no-restart-on-command-exit
+        --patterns="*.py;*.json;*.yaml;*.toml"
+        --recursive
+        -- python run.py
